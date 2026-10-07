@@ -1,0 +1,380 @@
+/* =========================================================
+   TOKENS
+   ========================================================= */
+:root {
+  color-scheme: light;
+  --font: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI Variable", system-ui, sans-serif;
+
+  /* Color de identidad por métrica (validado: CVD + visión normal, claro y oscuro) */
+  --c-p: #eb6834;   /* Potencia    · naranja solar (acento) */
+  --c-v: #2a78d6;   /* Voltaje     · azul panel */
+  --c-i: #1baf7a;   /* Corriente   · aqua */
+  --c-t: #4a3aa7;   /* Temperatura · violeta */
+  --c-g: #eda100;   /* Irradiancia · ámbar */
+  --c-ml: #d55181;  /* Predicción del modelo · magenta */
+  --c-ref: #9a9aa5; /* Serie de referencia (real / sesión B) · neutro */
+
+  /* Estados (reservados, siempre con ícono + texto) */
+  --good: #0ca30c; --warning: #fab219; --serious: #ec835a; --critical: #d03b3b;
+
+  /* Tinta */
+  --ink: #0b0b0f;
+  --ink-2: #47474f;
+  --ink-3: #7a7a84;
+
+  /* Vidrio */
+  --glass: rgba(255,255,255,.60);
+  --glass-strong: rgba(255,255,255,.78);
+  --glass-border: rgba(255,255,255,.65);
+  --glass-hi: rgba(255,255,255,.85);
+  --glass-shadow: 0 18px 40px -22px rgba(20,24,45,.45);
+  --frame: rgba(255,255,255,.30);
+  --frame-border: rgba(255,255,255,.45);
+  --chip: rgba(11,11,15,.05);
+  --chip-strong: rgba(11,11,15,.08);
+  --ring: #f4f2ef;          /* anillo de superficie de los puntos */
+  --grid: rgba(11,11,15,.08);
+  --axis: rgba(11,11,15,.16);
+
+  --bg-dim: .10;
+  --bg-blur: 0px;
+  --scrim: 255,255,255;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --c-p: #d95926; --c-v: #3987e5; --c-i: #199e70; --c-t: #9085e9; --c-g: #c98500;
+  --c-ml: #e87ba4; --c-ref: #767884;
+  --ink: #ffffff; --ink-2: #c6c7d1; --ink-3: #8c8e9b;
+  --glass: rgba(18,20,30,.52);
+  --glass-strong: rgba(18,20,30,.70);
+  --glass-border: rgba(255,255,255,.12);
+  --glass-hi: rgba(255,255,255,.10);
+  --glass-shadow: 0 24px 50px -24px rgba(0,0,0,.7);
+  --frame: rgba(8,10,18,.22);
+  --frame-border: rgba(255,255,255,.10);
+  --chip: rgba(255,255,255,.07);
+  --chip-strong: rgba(255,255,255,.12);
+  --ring: #1d1f27;
+  --grid: rgba(255,255,255,.07);
+  --axis: rgba(255,255,255,.16);
+  --scrim: 4,6,16;
+}
+
+/* =========================================================
+   BASE
+   ========================================================= */
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  font-family: var(--font);
+  color: var(--ink);
+  background: #1c2340;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.4;
+}
+button { font: inherit; color: inherit; }
+.tnum { font-variant-numeric: tabular-nums; }
+.sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+
+/* ---------- Fondo personalizable ---------- */
+.bg { position: fixed; inset: 0; z-index: 0; overflow: hidden; }
+.bg__img {
+  position: absolute; inset: calc(-1 * var(--bg-blur) * 2);
+  background-size: cover; background-position: center;
+  filter: blur(var(--bg-blur)) saturate(1.05);
+  transition: filter .4s ease;
+}
+.bg__scrim { position:absolute; inset:0; background: rgba(var(--scrim), var(--bg-dim)); transition: background .4s ease; }
+[data-bg="foto"] .bg__img { background-image: url("../assets/fondo-campo-solar.webp"); }
+[data-bg="atardecer"] .bg__img {
+  background:
+    radial-gradient(55% 55% at 12% 18%, #ffb36b 0%, transparent 62%),
+    radial-gradient(50% 60% at 88% 12%, #8a9cf0 0%, transparent 60%),
+    radial-gradient(65% 60% at 72% 88%, #f0705a 0%, transparent 62%),
+    radial-gradient(60% 60% at 18% 92%, #3b4fa8 0%, transparent 66%),
+    #e3ae98;
+  background-size: 140% 140%;
+  animation: drift 38s ease-in-out infinite alternate;
+}
+[data-bg="noche"] .bg__img {
+  background:
+    radial-gradient(50% 50% at 85% 85%, rgba(242,140,40,.55) 0%, transparent 60%),
+    radial-gradient(60% 60% at 15% 15%, #2a4cb0 0%, transparent 62%),
+    radial-gradient(55% 60% at 60% 30%, #5b3a9e 0%, transparent 60%),
+    #0b1230;
+  background-size: 140% 140%;
+  animation: drift 44s ease-in-out infinite alternate;
+}
+[data-bg="custom"] .bg__img { background-image: var(--custom-bg); }
+@keyframes drift { from { background-position: 0% 0%; } to { background-position: 100% 100%; } }
+
+/* =========================================================
+   LAYOUT
+   ========================================================= */
+.shell {
+  position: relative; z-index: 1;
+  display: grid; grid-template-columns: 72px minmax(0,1fr);
+  gap: 20px; padding: 24px; min-height: 100vh;
+  max-width: 1680px; margin: 0 auto;
+}
+.glass {
+  background: var(--glass);
+  -webkit-backdrop-filter: blur(28px) saturate(170%);
+  backdrop-filter: blur(28px) saturate(170%);
+  border: 1px solid var(--glass-border);
+  box-shadow: inset 0 1px 0 var(--glass-hi), var(--glass-shadow);
+}
+
+/* Rail de navegación */
+.rail {
+  position: sticky; top: 24px; height: calc(100vh - 48px); min-height: 520px;
+  border-radius: 36px; padding: 16px 0;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.logo {
+  width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center;
+  background: linear-gradient(145deg, #ffb35c, #eb6834 60%, #c9471b);
+  color: #fff; box-shadow: 0 8px 20px -8px rgba(235,104,52,.8); margin-bottom: 18px;
+}
+.nav { display: flex; flex-direction: column; gap: 6px; }
+.nav__btn {
+  position: relative; width: 44px; height: 44px; border-radius: 14px; border: 0;
+  background: transparent; color: var(--ink-2); display: grid; place-items: center; cursor: pointer;
+  transition: background .2s, color .2s, transform .15s;
+}
+.nav__btn:hover { background: var(--chip); color: var(--ink); }
+.nav__btn:active { transform: scale(.94); }
+.nav__btn[aria-current="page"] { background: var(--c-p); color: #fff; box-shadow: 0 8px 18px -8px var(--c-p); }
+.nav__btn:focus-visible, .seg button:focus-visible, .icon-btn:focus-visible, .theme button:focus-visible, .bg-opt:focus-visible {
+  outline: 2px solid var(--c-v); outline-offset: 2px;
+}
+.nav__btn .tip {
+  position: absolute; left: 56px; white-space: nowrap; pointer-events: none;
+  background: var(--glass-strong); backdrop-filter: blur(20px); border: 1px solid var(--glass-border);
+  padding: 6px 10px; border-radius: 10px; font-size: 12px; font-weight: 500; color: var(--ink);
+  opacity: 0; transform: translateX(-4px); transition: .15s;
+}
+.nav__btn:hover .tip, .nav__btn:focus-visible .tip { opacity: 1; transform: none; }
+.rail__spacer { flex: 1; }
+.theme {
+  display: flex; flex-direction: column; gap: 4px; padding: 4px; border-radius: 22px; background: var(--chip);
+}
+.theme button {
+  width: 36px; height: 36px; border-radius: 50%; border: 0; background: transparent; cursor: pointer;
+  display: grid; place-items: center; color: var(--ink-3); transition: .2s;
+}
+.theme button[aria-pressed="true"] { background: var(--glass-strong); color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+
+/* Ventana principal (vidrio "marco" tipo visionOS) */
+.window {
+  position: relative; border-radius: 34px; padding: 22px; min-width: 0;
+  border: 1px solid var(--frame-border);
+  background: var(--frame);
+}
+/* La capa de blur del marco va en un pseudo-elemento para no anidar backdrop-filters */
+.window::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; z-index: -1;
+  -webkit-backdrop-filter: blur(14px) saturate(140%); backdrop-filter: blur(14px) saturate(140%);
+}
+.main-col { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.side-col { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+
+/* ---------- Encabezado ---------- */
+.head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 4px 4px 2px; }
+.hello h1 { margin: 0; font-size: 28px; font-weight: 400; letter-spacing: -.02em; }
+.hello h1 b { font-weight: 700; }
+.hello p { margin: 4px 0 0; color: var(--ink-2); font-size: 13px; }
+.head__tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pill {
+  display: inline-flex; align-items: center; gap: 8px; height: 36px; padding: 0 14px 0 12px;
+  border-radius: 999px; font-size: 12.5px; font-weight: 500; color: var(--ink-2);
+}
+.pill b { color: var(--ink); font-weight: 600; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); position: relative; flex: none; }
+.dot::after { content:""; position:absolute; inset:-4px; border-radius:50%; border: 2px solid var(--good); opacity:.5; animation: pulse 2s ease-out infinite; }
+.pill.is-paused .dot { background: var(--warning); }
+.pill.is-paused .dot::after { animation: none; opacity: 0; }
+@keyframes pulse { from { transform: scale(.6); opacity:.6 } to { transform: scale(1.6); opacity: 0 } }
+.seg { display: inline-flex; padding: 3px; border-radius: 999px; gap: 2px; height: 36px; }
+.seg button {
+  border: 0; background: transparent; padding: 0 12px; border-radius: 999px; cursor: pointer;
+  font-size: 12.5px; font-weight: 500; color: var(--ink-2); transition: .2s;
+}
+.seg button:hover { color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--glass-strong); }
+:root[data-theme="dark"] .seg button[aria-pressed="true"] { background: #fff; color: #10121a; }
+.icon-btn {
+  width: 36px; height: 36px; border-radius: 50%; border: 0; cursor: pointer;
+  display: grid; place-items: center; color: var(--ink); transition: transform .15s;
+}
+.icon-btn:active { transform: scale(.92); }
+
+/* ---------- Tarjetas ---------- */
+.card { border-radius: 24px; padding: 16px 18px; position: relative; min-width: 0; }
+.card__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.card__title { margin: 0; font-size: 15px; font-weight: 600; letter-spacing: -.01em; }
+.card__sub { margin: 2px 0 0; font-size: 12px; color: var(--ink-3); }
+.link { font-size: 12px; font-weight: 500; color: var(--ink-2); background: var(--chip); border: 0; border-radius: 999px; padding: 6px 12px; cursor: pointer; }
+.link:hover { background: var(--chip-strong); color: var(--ink); }
+
+/* KPI */
+.kpis { display: grid; grid-template-columns: repeat(5, minmax(0,1fr)); gap: 12px; }
+.kpi { padding: 14px 16px 12px; display: flex; flex-direction: column; gap: 4px; }
+.kpi__top { display: flex; align-items: center; justify-content: space-between; }
+.kpi__label { font-size: 13px; font-weight: 500; color: var(--ink-2); }
+.badge {
+  width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; color: #fff;
+  background: var(--mc); box-shadow: 0 6px 14px -6px var(--mc);
+}
+.badge svg { width: 15px; height: 15px; }
+.kpi__spark { height: 40px; margin: 6px -2px 2px; }
+.kpi__spark svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.kpi__value { display: flex; align-items: baseline; gap: 4px; }
+.kpi__num { font-size: 26px; font-weight: 600; letter-spacing: -.02em; }
+.kpi__unit { font-size: 13px; color: var(--ink-3); font-weight: 500; }
+.kpi__delta { display: flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--ink-3); }
+.kpi__delta svg { width: 12px; height: 12px; flex: none; }
+.kpi--hero { background: var(--glass-strong); }
+
+/* Fila 2 */
+.row2 { display: grid; grid-template-columns: minmax(0,1.7fr) minmax(0,1fr); gap: 12px; }
+.row3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; }
+.chart { position: relative; height: 230px; margin-top: 10px; }
+.chart--sm { height: 170px; }
+.chart svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.now {
+  display: inline-flex; align-items: baseline; gap: 4px; padding: 6px 12px; border-radius: 999px;
+  background: var(--chip); font-size: 12px; color: var(--ink-2);
+}
+.now b { font-size: 15px; color: var(--ink); font-weight: 600; }
+.key { display:inline-block; width:10px; height:10px; border-radius:3px; background: var(--mc); margin-right: 6px; vertical-align: -1px; }
+
+/* Tooltip de gráficas */
+.tip {
+  position: absolute; pointer-events: none; z-index: 5; min-width: 120px;
+  background: var(--glass-strong); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border); border-radius: 12px; padding: 8px 10px;
+  box-shadow: 0 10px 24px -10px rgba(0,0,0,.35); font-size: 12px; color: var(--ink-2);
+  opacity: 0; transition: opacity .12s;
+}
+.tip b { display: block; color: var(--ink); font-size: 14px; font-weight: 600; margin-top: 2px; }
+.tip.show { opacity: 1; }
+
+/* Tarjeta principal con imagen */
+.hero {
+  border-radius: 24px; overflow: hidden; position: relative; min-height: 300px; color: #fff;
+  display: flex; flex-direction: column; justify-content: flex-end; padding: 20px;
+  border: 1px solid rgba(255,255,255,.25); box-shadow: var(--glass-shadow);
+  background: url("../assets/fondo-campo-solar.webp") 92% 38% / 260% auto no-repeat, #1b2240;
+}
+.hero::before {
+  content:""; position:absolute; inset:0;
+  background: linear-gradient(180deg, rgba(8,10,25,0) 20%, rgba(8,10,25,.55) 55%, rgba(8,10,25,.88) 100%);
+}
+.hero > * { position: relative; }
+.hero__tag {
+  position: absolute; top: 16px; left: 16px; display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11.5px; font-weight: 600; padding: 6px 10px; border-radius: 999px;
+  background: rgba(255,255,255,.18); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.3);
+}
+.hero__label { font-size: 13px; color: rgba(255,255,255,.8); }
+.hero__fig { font-size: 56px; font-weight: 700; letter-spacing: -.035em; line-height: 1; margin: 6px 0 14px; }
+.hero__fig small { font-size: 20px; font-weight: 500; letter-spacing: 0; color: rgba(255,255,255,.75); margin-left: 4px; }
+.hero__stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.hero__stat { border-left: 2px solid var(--c-p); padding-left: 10px; }
+.hero__stat b { display: block; font-size: 18px; font-weight: 600; }
+.hero__stat span { font-size: 11.5px; color: rgba(255,255,255,.72); }
+
+/* Columna derecha */
+.panel-id { display: flex; align-items: center; gap: 12px; }
+.panel-id__img { width: 46px; height: 46px; border-radius: 14px; background: url("../assets/fondo-campo-solar.webp") 88% 40% / 900% auto; border: 2px solid var(--glass-border); flex: none; }
+.panel-id h3 { margin: 0; font-size: 15px; font-weight: 600; }
+.panel-id p { margin: 1px 0 0; font-size: 12px; color: var(--ink-3); }
+.specs { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-top: 14px; }
+.spec { background: var(--chip); border-radius: 14px; padding: 10px; text-align: center; }
+.spec b { display: block; font-size: 16px; font-weight: 600; }
+.spec span { font-size: 11px; color: var(--ink-3); }
+.perf { display: flex; align-items: center; gap: 14px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--grid); }
+.perf svg { width: 84px; height: 84px; flex: none; }
+.perf h4 { margin: 0; font-size: 13px; font-weight: 600; }
+.perf p { margin: 2px 0 0; font-size: 12px; color: var(--ink-3); }
+
+.list { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.row { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 14px; background: var(--chip); }
+.row__icon { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; flex: none; background: var(--chip-strong); }
+.row__icon svg { width: 16px; height: 16px; }
+.row__main { flex: 1; min-width: 0; }
+.row__main b { display: block; font-size: 13px; font-weight: 600; }
+.row__main span { font-size: 11.5px; color: var(--ink-3); }
+.row__meta { font-size: 11.5px; color: var(--ink-3); text-align: right; }
+.st-good { color: var(--good); } .st-warning { color: var(--warning); } .st-critical { color: var(--critical); }
+.tag { font-size: 10.5px; font-weight: 600; padding: 3px 8px; border-radius: 999px; background: var(--chip-strong); color: var(--ink-2); }
+.tag--live { background: color-mix(in srgb, var(--c-p) 18%, transparent); color: var(--ink); }
+
+.ml { overflow: hidden; }
+.ml::after {
+  content:""; position:absolute; right:-40px; top:-40px; width:160px; height:160px; border-radius:50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--c-t) 40%, transparent), transparent 70%);
+  pointer-events: none;
+}
+.ml__fig { font-size: 30px; font-weight: 600; color: var(--ink-3); margin: 8px 0 2px; }
+.ml p { margin: 0; font-size: 12px; color: var(--ink-3); }
+.btn-ghost { margin-top: 12px; width: 100%; height: 36px; border-radius: 12px; border: 1px dashed var(--axis); background: transparent; color: var(--ink-2); font-size: 12.5px; font-weight: 500; cursor: not-allowed; }
+
+/* ---------- Popover de fondo ---------- */
+.pop {
+  position: fixed; z-index: 40; width: 300px; border-radius: 22px; padding: 16px;
+  display: none;
+}
+.pop.open { display: block; animation: popIn .18s ease-out; }
+@keyframes popIn { from { opacity: 0; transform: translateY(-6px) scale(.98); } }
+.pop h3 { margin: 0 0 10px; font-size: 14px; font-weight: 600; }
+.bg-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.bg-opt {
+  height: 64px; border-radius: 12px; border: 2px solid transparent; cursor: pointer; position: relative; overflow: hidden;
+  background-size: cover; background-position: center; color: #fff; font-size: 11.5px; font-weight: 600;
+  display: flex; align-items: flex-end; padding: 6px 8px; text-shadow: 0 1px 4px rgba(0,0,0,.5);
+}
+.bg-opt[aria-pressed="true"] { border-color: var(--c-p); }
+.bg-opt--foto { background-image: url("../assets/fondo-campo-solar.webp"); }
+.bg-opt--atardecer { background: radial-gradient(60% 60% at 15% 20%, #ffb36b, transparent 62%), radial-gradient(60% 60% at 85% 15%, #8a9cf0, transparent 60%), radial-gradient(70% 60% at 70% 90%, #f0705a, transparent 62%), #e3ae98; }
+.bg-opt--noche { background: radial-gradient(50% 50% at 85% 85%, rgba(242,140,40,.6), transparent 60%), radial-gradient(60% 60% at 15% 15%, #2a4cb0, transparent 62%), #0b1230; }
+.bg-opt--custom { background: var(--chip-strong); color: var(--ink-2); text-shadow: none; justify-content: center; align-items: center; border: 2px dashed var(--axis); }
+.slider { margin-top: 14px; }
+.slider label { display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-2); margin-bottom: 6px; }
+.slider input { width: 100%; accent-color: var(--c-p); }
+
+.toast {
+  position: fixed; left: 50%; bottom: 28px; transform: translate(-50%, 20px); z-index: 30;
+  padding: 10px 16px; border-radius: 999px; font-size: 13px; font-weight: 500; opacity: 0; transition: .25s; pointer-events: none;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------- Animación de entrada ---------- */
+.reveal { animation: rise .6s cubic-bezier(.2,.8,.2,1) both; animation-delay: calc(var(--i, 0) * 60ms); }
+@keyframes rise { from { opacity: 0; transform: translateY(10px) scale(.99); } }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 1280px) {
+  .view--live { grid-template-columns: minmax(0,1fr); }
+  .side-col { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+@media (max-width: 1080px) {
+  .kpis { grid-template-columns: repeat(3, minmax(0,1fr)); }
+  .row2, .row3 { grid-template-columns: minmax(0,1fr); }
+}
+@media (max-width: 760px) {
+  .shell { grid-template-columns: minmax(0,1fr); padding: 12px 16px 96px; }
+  .rail { position: fixed; z-index: 15; top: auto; bottom: 12px; left: 16px; right: 16px; height: 64px; min-height: 0; flex-direction: row; justify-content: space-around; padding: 0 10px; border-radius: 26px; }
+  .logo, .rail__spacer, .nav__btn .tip { display: none; }
+  .nav { flex-direction: row; }
+  .theme { flex-direction: row; }
+  .window { padding: 14px; border-radius: 26px; }
+  .kpis, .side-col { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .side-col { display: flex; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

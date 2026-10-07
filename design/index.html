@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SIMON · Monitor solar</title>
+<!-- Maqueta navegable. En la app final Inter va empaquetada localmente: sin internet en la red del ESP32. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/maqueta.css">
+<link rel="stylesheet" href="css/vistas.css">
+<script>
+  // Tema antes de pintar, para evitar el destello
+  try {
+    const t = JSON.parse(localStorage.getItem('simon.theme') || '"system"');
+    document.documentElement.dataset.theme = t === 'system' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : t;
+  } catch { document.documentElement.dataset.theme = 'light'; }
+</script>
+</head>
+<body data-bg="foto">
+<div class="bg" aria-hidden="true"><div class="bg__img"></div><div class="bg__scrim"></div></div>
+
+<!-- Íconos (trazo 2 px) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+    <symbol id="i-live" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></symbol>
+    <symbol id="i-analysis" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><circle cx="8.5" cy="14.5" r="1.5"/><circle cx="13" cy="9.5" r="1.5"/><circle cx="17.5" cy="12.5" r="1.5"/><circle cx="18" cy="6" r="1.5"/></symbol>
+    <symbol id="i-ml" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3l1.9 5.1L17 10l-5.1 1.9L10 17l-1.9-5.1L3 10l5.1-1.9z"/><path d="M18 14l.9 2.1L21 17l-2.1.9L18 20l-.9-2.1L15 17l2.1-.9z"/></symbol>
+    <symbol id="i-sessions" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/></symbol>
+    <symbol id="i-bolt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></symbol>
+    <symbol id="i-battery" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="16" height="10" rx="2"/><path d="M22 11v2M6 10v4M10 10v4"/></symbol>
+    <symbol id="i-flow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h15M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-thermo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></symbol>
+    <symbol id="i-image" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="5" width="4" height="14" rx="1.2"/><rect x="14" y="5" width="4" height="14" rx="1.2"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="m8.5 12 2.5 2.5 4.5-5"/></symbol>
+    <symbol id="i-wifi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></symbol>
+    <symbol id="i-flat" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M5 12h14"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="i-left" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></symbol>
+    <symbol id="i-right" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></symbol>
+    <symbol id="i-refresh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36L21 8"/><path d="M21 3v5h-5"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+    <symbol id="i-plug" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6M15 2v6M6 8h12v3a6 6 0 0 1-12 0zM12 17v5"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+  </defs>
+</svg>
+
+<div class="shell">
+  <!-- ===== Barra lateral ===== -->
+  <nav class="rail glass reveal" aria-label="Secciones">
+    <div class="logo" title="SIMON"><svg width="24" height="24"><use href="#i-sun"/></svg></div>
+    <div class="nav">
+      <a class="nav__btn" href="#/en-vivo" data-route="en-vivo" aria-label="En vivo"><svg width="20" height="20"><use href="#i-live"/></svg><span class="tip">En vivo</span></a>
+      <a class="nav__btn" href="#/analisis" data-route="analisis" aria-label="Análisis"><svg width="20" height="20"><use href="#i-analysis"/></svg><span class="tip">Análisis</span></a>
+      <a class="nav__btn" href="#/prediccion" data-route="prediccion" aria-label="Predicción ML"><svg width="20" height="20"><use href="#i-ml"/></svg><span class="tip">Predicción ML</span></a>
+      <a class="nav__btn" href="#/sesiones" data-route="sesiones" aria-label="Sesiones"><svg width="20" height="20"><use href="#i-sessions"/></svg><span class="tip">Sesiones</span></a>
+      <a class="nav__btn" href="#/configuracion" data-route="configuracion" aria-label="Configuración"><svg width="20" height="20"><use href="#i-settings"/></svg><span class="tip">Configuración</span></a>
+    </div>
+    <div class="rail__spacer"></div>
+    <div class="theme" role="group" aria-label="Tema">
+      <button data-theme-set="light" aria-pressed="false" aria-label="Tema claro"><svg width="18" height="18"><use href="#i-sun"/></svg></button>
+      <button data-theme-set="dark" aria-pressed="false" aria-label="Tema oscuro"><svg width="18" height="18"><use href="#i-moon"/></svg></button>
+    </div>
+  </nav>
+
+  <main class="window">
+    <!-- ===================== EN VIVO ===================== -->
+    <div class="view view--live" id="view-en-vivo" hidden>
+      <section class="main-col">
+        <header class="head reveal" style="--i:1">
+          <div class="hello">
+            <h1><span id="greet">Buenos días</span>, <b class="js-team">equipo SIMON</b> <span aria-hidden="true">☀️</span></h1>
+            <p><span class="js-panel-name">Panel solar</span> · Sesión <b>v7</b> · <span id="clock" class="tnum">--:--:--</span></p>
+          </div>
+          <div class="head__tools">
+            <span class="pill glass js-status"><span class="dot"></span><span><b class="js-status-txt">—</b><span class="js-status-meta"></span></span></span>
+            <div class="seg glass" role="group" aria-label="Ventana de tiempo">
+              <button data-win="60" aria-pressed="false">1 min</button>
+              <button data-win="300" aria-pressed="true">5 min</button>
+              <button data-win="900" aria-pressed="false">15 min</button>
+              <button data-win="0" aria-pressed="false">Todo</button>
+            </div>
+            <button class="icon-btn glass" id="pause" aria-label="Pausar"><svg width="16" height="16"><use href="#i-pause"/></svg></button>
+            <button class="icon-btn glass js-bg-btn" aria-label="Personalizar fondo" aria-expanded="false"><svg width="18" height="18"><use href="#i-image"/></svg></button>
+          </div>
+        </header>
+
+        <!-- KPIs: orden P · V · I · T · G (orden validado de colores) -->
+        <div class="kpis" id="kpis"></div>
+
+        <div class="row2">
+          <article class="card glass reveal" style="--i:7">
+            <div class="card__head">
+              <div>
+                <h2 class="card__title">Potencia en vivo</h2>
+                <p class="card__sub"><span class="key" style="--mc:var(--c-p)"></span>mW · <span id="win-lbl">últimos 5 min</span></p>
+              </div>
+              <span class="now">Pico <b class="tnum" id="peak">—</b> mW</span>
+            </div>
+            <div class="chart" id="ch-p"></div>
+          </article>
+
+          <article class="hero reveal" style="--i:8">
+            <span class="hero__tag"><svg width="13" height="13"><use href="#i-bolt"/></svg> Sesión en curso</span>
+            <span class="hero__label">Energía generada en la sesión</span>
+            <div class="hero__fig"><span id="energy">0,00</span><small>Wh</small></div>
+            <div class="hero__stats">
+              <div class="hero__stat"><b id="uptime" class="tnum">00:00:00</b><span>Tiempo activo</span></div>
+              <div class="hero__stat"><b id="samples" class="tnum">0</b><span>Muestras guardadas</span></div>
+            </div>
+          </article>
+        </div>
+
+        <div class="row3">
+          <article class="card glass reveal" style="--i:9">
+            <h2 class="card__title">Voltaje</h2>
+            <p class="card__sub"><span class="key" style="--mc:var(--c-v)"></span>V · bus del INA219</p>
+            <div class="chart chart--sm" id="ch-v"></div>
+          </article>
+          <article class="card glass reveal" style="--i:10">
+            <h2 class="card__title">Corriente</h2>
+            <p class="card__sub"><span class="key" style="--mc:var(--c-i)"></span>mA · INA219</p>
+            <div class="chart chart--sm" id="ch-i"></div>
+          </article>
+          <article class="card glass reveal" style="--i:11">
+            <h2 class="card__title">Potencia vs irradiancia</h2>
+            <p class="card__sub">Cada punto = 1 s · ajuste cuadrático <span id="r2" class="tnum"></span></p>
+            <div class="chart chart--sm" id="ch-s"></div>
+          </article>
+        </div>
+      </section>
+
+      <aside class="side-col">
+        <article class="card glass reveal" style="--i:3">
+          <div class="panel-id">
+            <div class="panel-id__img" aria-hidden="true"></div>
+            <div><h3 class="js-panel-name">Panel monocristalino</h3><p>Prototipo · laboratorio</p></div>
+          </div>
+          <div class="specs">
+            <div class="spec"><b id="spec-nominal">1,0 W</b><span>Nominal</span></div>
+            <div class="spec"><b id="spec-voc">6,0 V</b><span>Voc</span></div>
+            <div class="spec"><b id="spec-area">110</b><span>cm² área</span></div>
+          </div>
+          <div class="perf">
+            <svg viewBox="0 0 84 84" id="ring" role="img" aria-label="Rendimiento"></svg>
+            <div><h4>Rendimiento actual</h4><p id="perf-note">Potencia instantánea respecto a la nominal</p></div>
+          </div>
+        </article>
+
+        <article class="card glass reveal" style="--i:4">
+          <div class="card__head"><h2 class="card__title">Estado del sistema</h2></div>
+          <ul class="list" id="status-list"></ul>
+        </article>
+
+        <article class="card glass reveal" style="--i:5">
+          <div class="card__head"><h2 class="card__title">Sesiones</h2><a class="link" href="#/sesiones">Ver todas</a></div>
+          <ul class="list" id="live-sessions"></ul>
+        </article>
+
+        <article class="card glass ml reveal" style="--i:6">
+          <div class="card__head">
+            <div><h2 class="card__title">Eficiencia predicha</h2><p class="card__sub">Modelo de demostración</p></div>
+            <span class="badge" style="--mc:var(--c-ml)"><svg><use href="#i-ml"/></svg></span>
+          </div>
+          <div class="ml__fig" id="ml-fig">— %</div>
+          <p id="ml-note">Calculando…</p>
+          <a class="btn-ghost" href="#/prediccion">Ver predicción</a>
+        </article>
+      </aside>
+    </div>
+
+    <!-- Las demás vistas se generan desde js/views/*.js -->
+    <div class="view" id="view-analisis" hidden></div>
+    <div class="view" id="view-prediccion" hidden></div>
+    <div class="view" id="view-sesiones" hidden></div>
+    <div class="view" id="view-configuracion" hidden></div>
+  </main>
+</div>
+
+<!-- Popover de fondo (compartido) -->
+<div class="pop glass" id="pop" role="dialog" aria-label="Personalizar fondo">
+  <h3>Fondo</h3>
+  <div class="bg-opts">
+    <button class="bg-opt bg-opt--foto" data-bg-set="foto" aria-pressed="false">Campo solar</button>
+    <button class="bg-opt bg-opt--atardecer" data-bg-set="atardecer" aria-pressed="false">Atardecer</button>
+    <button class="bg-opt bg-opt--noche" data-bg-set="noche" aria-pressed="false">Noche</button>
+    <label class="bg-opt bg-opt--custom" tabindex="0">+ Tu imagen<input type="file" accept="image/*" class="sr js-bg-file"></label>
+  </div>
+  <div class="slider"><label>Desenfoque <span class="tnum js-blur-v">0 px</span></label><input type="range" class="js-blur" min="0" max="24" value="0" aria-label="Desenfoque"></div>
+  <div class="slider"><label>Atenuar fondo <span class="tnum js-dim-v">10 %</span></label><input type="range" class="js-dim" min="0" max="70" value="10" aria-label="Atenuar fondo"></div>
+</div>
+
+<div class="toast glass" id="toast" role="status"></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
