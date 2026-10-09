@@ -1,6 +1,7 @@
 import { SESSIONS, getSession, sessionData, sessionStart, summarize, toCSV } from '../sim.js';
 import { config } from '../store.js';
 import { lineChart, spark, fmt } from '../charts.js';
+import { maintenance } from '../physics.js';
 import { $, $$, ic, viewHeader, download, toast, relDay, durFmt, timeFmt, dayKey, dateFmt } from '../ui.js';
 
 let root, query = '', selDay = null, cmpA = 'v6', cmpB = 'v5', ticks = 0;
@@ -93,7 +94,7 @@ function renderCal() {
 }
 
 function renderCompare() {
-  const prep = id => { const s = getSession(id), d = sessionData(s), t0 = d[0].ts; return { s, d, pts: d.map(x => ({ e: (x.ts - t0) / 1000, p: x.p })), sm: summarize(d) }; };
+  const prep = id => { const s = getSession(id), d = sessionData(s), t0 = d[0].ts; return { s, d, pts: d.map(x => ({ e: (x.ts - t0) / 1000, p: x.p })), sm: summarize(d), mt: maintenance(d, config, Infinity) }; };
   const A = prep(cmpA), B = prep(cmpB);
   lineChart($('#se-cmp', root), {
     series: [
@@ -110,13 +111,16 @@ function renderCompare() {
     ${row('Energía', A.sm.energyWh, B.sm.energyWh, 2, 'Wh')}
     ${row('Potencia media', A.sm.meanP, B.sm.meanP, 0, 'mW')}
     ${row('Potencia pico', A.sm.peak, B.sm.peak, 0, 'mW')}
+    ${row('Eficiencia (mediana)', A.mt.median ?? NaN, B.mt.median ?? NaN, 2, '%')}
+    ${row('Rendimiento vs nominal', A.mt.ratio ?? NaN, B.mt.ratio ?? NaN, 0, '%')}
     ${row('Temperatura media', A.sm.meanT, B.sm.meanT, 1, '°C')}</tbody>`;
 }
 
 function renderList() {
   $('#se-list', root).innerHTML = SESSIONS.map(s => {
     const d = sessionData(s), sm = summarize(d), start = sessionStart(s);
-    const tag = s.live ? '<span class="tag tag--live">En vivo</span>' : s.estado === 'interrumpida' ? '<span class="tag tag--warn">Interrumpida</span>' : s.nota ? `<span class="tag">${s.nota}</span>` : '';
+    const tag = (s.live ? '<span class="tag tag--live">En vivo</span>' : s.estado === 'interrumpida' ? '<span class="tag tag--warn">Interrumpida</span>' : s.nota ? `<span class="tag">${s.nota}</span>` : '')
+      + (!s.live && maintenance(d, config, Infinity).state === 'revisar' ? `<span class="tag tag--warn">${ic('i-wrench', 11)} Revisar panel</span>` : '');
     const search = `${s.id} ${s.file} ${relDay(start)} ${dateFmt(start)}`.toLowerCase();
     return `<div class="srow" data-id="${s.id}" data-rowday="${dayKey(start)}" data-search="${search}">
       <span class="row__icon">${ic('i-sessions', 16, 'style="color:var(--ink-2)"')}</span>

@@ -10,6 +10,9 @@ export function toast(msg) {
   clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('show'), 2600);
 }
 
+export const infoBtn = (key, label) =>
+  `<button class="info-btn" data-info="${key}" aria-label="Qué es: ${label}" aria-expanded="false">i</button>`;
+
 export const statusPill = () =>
   `<span class="pill glass js-status"><span class="dot"></span><span><b class="js-status-txt">—</b><span class="js-status-meta"></span></span></span>`;
 export const bgButton = () =>

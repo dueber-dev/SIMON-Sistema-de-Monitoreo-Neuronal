@@ -1,7 +1,8 @@
 // Modelo de DEMOSTRACIÓN: regresión polinómica entrenada en el navegador.
 // Sustituto temporal del modelo del equipo, que llegará por /api/predict.
-import { config } from './store.js';
 import { live } from './sim.js';
+import { efficiency } from './physics.js';
+export { efficiency };
 
 // Mínimos cuadrados por ecuaciones normales + eliminación gaussiana con pivoteo
 export function lstsq(rows, y) {
@@ -28,12 +29,6 @@ export function polyfit(xs, ys, deg = 2) {
   const beta = lstsq(xs.map(x => Array.from({ length: deg + 1 }, (_, j) => x ** j)), ys);
   const f = x => beta.reduce((s, b, j) => s + b * x ** j, 0);
   return { beta, f, r2: r2score(ys, xs.map(f)) };
-}
-
-// η = P / (G · A). G sale del LDR calibrado (W/m² por cada % de luz).
-export function efficiency(pmW, g, cfg = config) {
-  const G = g * cfg.sensores.ldrFactor, A = cfg.panel.area / 1e4;
-  return G > 1 && A > 0 ? (pmW / 1000) / (G * A) * 100 : 0;
 }
 
 const FEATS = ['Irradiancia', 'Irradiancia²', 'Temperatura'];

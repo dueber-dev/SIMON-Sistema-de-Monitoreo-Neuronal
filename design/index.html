@@ -52,6 +52,8 @@
     <symbol id="i-info" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
     <symbol id="i-plug" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 2v6M15 2v6M6 8h12v3a6 6 0 0 1-12 0zM12 17v5"/></symbol>
     <symbol id="i-folder" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+    <symbol id="i-gauge" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 14l4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></symbol>
+    <symbol id="i-wrench" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></symbol>
   </defs>
 </svg>
 
@@ -95,46 +97,64 @@
           </div>
         </header>
 
-        <!-- KPIs: orden P · V · I · T · G (orden validado de colores) -->
+        <!-- KPIs: orden P · V · I · T · G · η -->
         <div class="kpis" id="kpis"></div>
 
         <div class="row2">
-          <article class="card glass reveal" style="--i:7">
+          <article class="card glass reveal" style="--i:8">
             <div class="card__head">
               <div>
-                <h2 class="card__title">Potencia en vivo</h2>
-                <p class="card__sub"><span class="key" style="--mc:var(--c-p)"></span>mW · <span id="win-lbl">últimos 5 min</span></p>
+                <h2 class="card__title">Potencia medida vs teórica <button class="info-btn" data-info="teorica" aria-label="Qué es: potencia medida vs teórica">i</button></h2>
+                <div class="legend"><span><i style="--mc:var(--c-p)"></i>Medida</span><span><i style="--mc:var(--c-th)"></i>Teórica (ficha técnica)</span><span style="color:var(--ink-3)">mW · <span id="win-lbl">últimos 5 min</span></span></div>
               </div>
-              <span class="now">Pico <b class="tnum" id="peak">—</b> mW</span>
+              <span class="now">Medida / teórica <b class="tnum" id="ratio-th">—</b></span>
             </div>
             <div class="chart" id="ch-p"></div>
           </article>
 
-          <article class="hero reveal" style="--i:8">
+          <article class="hero reveal" style="--i:9">
             <span class="hero__tag"><svg width="13" height="13"><use href="#i-bolt"/></svg> Sesión en curso</span>
-            <span class="hero__label">Energía generada en la sesión</span>
+            <span class="hero__label">Energía generada en la sesión <button class="info-btn info-btn--light" data-info="energia" aria-label="Qué es: energía generada">i</button></span>
             <div class="hero__fig"><span id="energy">0,00</span><small>Wh</small></div>
             <div class="hero__stats">
               <div class="hero__stat"><b id="uptime" class="tnum">00:00:00</b><span>Tiempo activo</span></div>
-              <div class="hero__stat"><b id="samples" class="tnum">0</b><span>Muestras guardadas</span></div>
+              <div class="hero__stat"><b id="peak" class="tnum">—</b><span>Pico de potencia (mW)</span></div>
             </div>
           </article>
         </div>
 
+        <div class="row2">
+          <article class="card glass reveal" style="--i:10">
+            <div class="card__head">
+              <div>
+                <h2 class="card__title">Eficiencia real vs nominal <button class="info-btn" data-info="e" aria-label="Qué es: eficiencia real">i</button></h2>
+                <div class="legend"><span><i style="--mc:var(--c-e)"></i>Real</span><span><i style="--mc:var(--ink-3)"></i>Nominal</span><span><i style="--mc:var(--warning)"></i>Umbral de mantenimiento</span></div>
+              </div>
+              <span class="now">Real <b class="tnum" id="eta-now">—</b> %</span>
+            </div>
+            <div class="chart" id="ch-e"></div>
+          </article>
+          <article class="card glass reveal" style="--i:11">
+            <h2 class="card__title">Temperatura del panel <button class="info-btn" data-info="t" aria-label="Qué es: temperatura">i</button></h2>
+            <div class="legend"><span><i style="--mc:var(--c-t)"></i>°C</span><span><i style="--mc:var(--warning)"></i>Umbral de alerta</span></div>
+            <div class="chart" id="ch-t"></div>
+          </article>
+        </div>
+
         <div class="row3">
-          <article class="card glass reveal" style="--i:9">
-            <h2 class="card__title">Voltaje</h2>
+          <article class="card glass reveal" style="--i:12">
+            <h2 class="card__title">Voltaje <button class="info-btn" data-info="v" aria-label="Qué es: voltaje">i</button></h2>
             <p class="card__sub"><span class="key" style="--mc:var(--c-v)"></span>V · bus del INA219</p>
             <div class="chart chart--sm" id="ch-v"></div>
           </article>
-          <article class="card glass reveal" style="--i:10">
-            <h2 class="card__title">Corriente</h2>
+          <article class="card glass reveal" style="--i:13">
+            <h2 class="card__title">Corriente <button class="info-btn" data-info="i" aria-label="Qué es: corriente">i</button></h2>
             <p class="card__sub"><span class="key" style="--mc:var(--c-i)"></span>mA · INA219</p>
             <div class="chart chart--sm" id="ch-i"></div>
           </article>
-          <article class="card glass reveal" style="--i:11">
-            <h2 class="card__title">Potencia vs irradiancia</h2>
-            <p class="card__sub">Cada punto = 1 s · ajuste cuadrático <span id="r2" class="tnum"></span></p>
+          <article class="card glass reveal" style="--i:14">
+            <h2 class="card__title">Potencia vs irradiancia <button class="info-btn" data-info="pg" aria-label="Qué es: potencia vs irradiancia">i</button></h2>
+            <p class="card__sub">mW vs W/m² · cada punto = 1 s · ajuste cuadrático <span id="r2" class="tnum"></span></p>
             <div class="chart chart--sm" id="ch-s"></div>
           </article>
         </div>
@@ -144,21 +164,21 @@
         <article class="card glass reveal" style="--i:3">
           <div class="panel-id">
             <div class="panel-id__img" aria-hidden="true"></div>
-            <div><h3 class="js-panel-name">Panel monocristalino</h3><p>Prototipo · laboratorio</p></div>
+            <div><h3 class="js-panel-name">Panel monocristalino</h3><p id="panel-src">Prototipo · laboratorio</p></div>
           </div>
           <div class="specs">
             <div class="spec"><b id="spec-nominal">1,0 W</b><span>Nominal</span></div>
-            <div class="spec"><b id="spec-voc">6,0 V</b><span>Voc</span></div>
+            <div class="spec"><b id="spec-eta">9,1 %</b><span>η nominal</span></div>
             <div class="spec"><b id="spec-area">110</b><span>cm² área</span></div>
           </div>
           <div class="perf">
-            <svg viewBox="0 0 84 84" id="ring" role="img" aria-label="Rendimiento"></svg>
-            <div><h4>Rendimiento actual</h4><p id="perf-note">Potencia instantánea respecto a la nominal</p></div>
+            <svg viewBox="0 0 84 84" id="ring" role="img" aria-label="Rendimiento respecto a la eficiencia nominal"></svg>
+            <div><h4>Rendimiento vs nominal <button class="info-btn" data-info="pr" aria-label="Qué es: rendimiento vs nominal">i</button></h4><p id="perf-note">—</p></div>
           </div>
         </article>
 
         <article class="card glass reveal" style="--i:4">
-          <div class="card__head"><h2 class="card__title">Estado del sistema</h2></div>
+          <div class="card__head"><h2 class="card__title">Estado del sistema</h2><button class="info-btn" data-info="mant" aria-label="Qué es: alerta de mantenimiento">i</button></div>
           <ul class="list" id="status-list"></ul>
         </article>
 
@@ -169,7 +189,7 @@
 
         <article class="card glass ml reveal" style="--i:6">
           <div class="card__head">
-            <div><h2 class="card__title">Eficiencia predicha</h2><p class="card__sub">Modelo de demostración</p></div>
+            <div><h2 class="card__title">Eficiencia predicha <button class="info-btn" data-info="ml" aria-label="Qué es: eficiencia predicha">i</button></h2><p class="card__sub">Modelo de demostración</p></div>
             <span class="badge" style="--mc:var(--c-ml)"><svg><use href="#i-ml"/></svg></span>
           </div>
           <div class="ml__fig" id="ml-fig">— %</div>
@@ -199,6 +219,9 @@
   <div class="slider"><label>Desenfoque <span class="tnum js-blur-v">0 px</span></label><input type="range" class="js-blur" min="0" max="24" value="0" aria-label="Desenfoque"></div>
   <div class="slider"><label>Atenuar fondo <span class="tnum js-dim-v">10 %</span></label><input type="range" class="js-dim" min="0" max="70" value="10" aria-label="Atenuar fondo"></div>
 </div>
+
+<!-- Ficha de indicador (justificación) -->
+<div class="pop glass info-pop" id="info-pop" role="dialog" aria-label="Información del indicador"></div>
 
 <div class="toast glass" id="toast" role="status"></div>
 

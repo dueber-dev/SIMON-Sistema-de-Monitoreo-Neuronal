@@ -2,9 +2,10 @@ import { live } from '../sim.js';
 import { config } from '../store.js';
 import { lineChart, scatter, bars, hbars, histogram, fmt, hhmmss } from '../charts.js';
 import { getModel, train, efficiency } from '../ml.js';
-import { $, ic, viewHeader, tween, toast, timeFmt } from '../ui.js';
+import { irradiance, pTheory, areaM2 } from '../physics.js';
+import { $, ic, viewHeader, tween, toast, timeFmt, infoBtn } from '../ui.js';
 
-let root, wiG = 80, wiT = 35;
+let root, wiG = 800, wiT = 35;
 
 function mount(el) {
   root = el;
@@ -45,8 +46,8 @@ function mount(el) {
 
     <div class="grid g-21">
       <article class="card glass reveal" style="--i:4">
-        <h2 class="card__title">Eficiencia real vs predicha</h2>
-        <div class="legend"><span><i style="--mc:var(--c-ref)"></i>Real (medida)</span><span><i style="--mc:var(--c-ml)"></i>Predicha</span><span style="color:var(--ink-3)">% · últimos 5 min</span></div>
+        <h2 class="card__title">Eficiencia real vs predicha ${infoBtn('ml', 'eficiencia predicha')}</h2>
+        <div class="legend"><span><i style="--mc:var(--c-e)"></i>Real (medida)</span><span><i style="--mc:var(--c-ref)"></i>Predicha por el modelo</span><span style="color:var(--ink-3)">% · últimos 5 min</span></div>
         <div class="chart" id="ml-line"></div>
       </article>
       <article class="card glass reveal" style="--i:5">
@@ -64,17 +65,19 @@ function mount(el) {
       </article>
       <article class="card glass reveal" style="--i:7">
         <h2 class="card__title">Simulador de escenarios</h2>
-        <p class="card__sub">¿Qué predice el modelo en otras condiciones?</p>
+        <p class="card__sub">Prueba otras condiciones y contrasta el modelo con el cálculo teórico ${infoBtn('teorica', 'cálculo teórico')}</p>
         <div class="whatif">
           <div>
-            <div class="field"><span class="lbl">Irradiancia</span><div class="range-row"><input type="range" id="wi-g" min="5" max="100" value="${wiG}" aria-label="Irradiancia"><output id="wi-g-v"></output></div></div>
+            <div class="field"><span class="lbl">Irradiancia</span><div class="range-row"><input type="range" id="wi-g" min="50" max="1000" step="10" value="${wiG}" aria-label="Irradiancia"><output id="wi-g-v"></output></div></div>
             <div class="field" style="margin-top:14px"><span class="lbl">Temperatura del panel</span><div class="range-row"><input type="range" id="wi-t" min="15" max="70" value="${wiT}" aria-label="Temperatura"><output id="wi-t-v"></output></div></div>
             <div class="whatif__out">
-              <div><b class="tnum" id="wi-p">—</b><span>Potencia predicha</span></div>
-              <div><b class="tnum" id="wi-e">—</b><span>Eficiencia predicha</span></div>
+              <div><b class="tnum" id="wi-p">—</b><span>Potencia · modelo</span></div>
+              <div><b class="tnum" id="wi-e">—</b><span>Eficiencia · modelo</span></div>
+              <div><b class="tnum" id="wi-pt">—</b><span>Potencia · teórica</span></div>
+              <div><b class="tnum" id="wi-et">—</b><span>Eficiencia · teórica</span></div>
             </div>
           </div>
-          <div><p class="card__sub" style="margin:0">Eficiencia predicha según la temperatura, a la irradiancia elegida</p><div class="chart chart--sm" id="ml-curve"></div></div>
+          <div><div class="legend" style="margin:0"><span><i style="--mc:var(--c-ref)"></i>Modelo</span><span><i style="--mc:var(--c-th)"></i>Teórica</span><span style="color:var(--ink-3)">eficiencia según la temperatura, a la irradiancia elegida</span></div><div class="chart chart--sm" id="ml-curve"></div></div>
         </div>
       </article>
     </div>
@@ -98,25 +101,31 @@ function renderLive() {
   const pts = live.data.slice(-300).filter(d => d.g > 5);
   lineChart($('#ml-line', root), {
     series: [
-      { data: pts, y: d => efficiency(d.p, d.g), color: '--c-ref', name: 'Real' },
-      { data: pts, y: d => mdl.predictEff(d.g, d.t), color: '--c-ml', name: 'Predicha' },
+      { data: pts, y: d => efficiency(d.p, d.g), color: '--c-e', name: 'Real' },
+      { data: pts, y: d => mdl.predictEff(d.g, d.t), color: '--c-ref', name: 'Predicha' },
     ],
     unit: '%', dec: 2, aria: 'Eficiencia real y predicha en el tiempo',
   });
 }
 
 function renderWhatIf() {
-  const mdl = getModel();
-  $('#wi-g-v', root).textContent = `${wiG} %`;
+  const mdl = getModel(), g = wiG / config.sensores.ldrFactor; // W/m² → % del LDR, como lo vería el sensor
+  const effTh = t => pTheory(g, t) / 1000 / (wiG * areaM2()) * 100;
+  $('#wi-g-v', root).textContent = `${wiG} W/m²`;
   $('#wi-t-v', root).textContent = `${wiT} °C`;
-  $('#wi-p', root).textContent = fmt(mdl.predictP(wiG, wiT), 0) + ' mW';
-  $('#wi-e', root).textContent = fmt(mdl.predictEff(wiG, wiT), 2) + ' %';
-  const curve = []; for (let t = 15; t <= 70; t++) curve.push({ t, e: mdl.predictEff(wiG, t) });
+  $('#wi-p', root).textContent = fmt(mdl.predictP(g, wiT), 0) + ' mW';
+  $('#wi-e', root).textContent = fmt(mdl.predictEff(g, wiT), 2) + ' %';
+  $('#wi-pt', root).textContent = fmt(pTheory(g, wiT), 0) + ' mW';
+  $('#wi-et', root).textContent = fmt(effTh(wiT), 2) + ' %';
+  const curve = []; for (let t = 15; t <= 70; t++) curve.push({ t, e: mdl.predictEff(g, t), th: effTh(t) });
   lineChart($('#ml-curve', root), {
-    series: [{ data: curve, y: d => d.e, color: '--c-ml' }], x: d => d.t, xKind: 'num', xFmt: v => `${fmt(v, 0)} °C`,
-    xTickFmt: v => `${fmt(v, 0)} °C`, unit: '%', dec: 2, endLabels: false, area: false,
-    points: [{ x: wiT, y: mdl.predictEff(wiG, wiT), color: '--c-ml', label: `${fmt(mdl.predictEff(wiG, wiT), 2)} %` }],
-    aria: 'Eficiencia predicha según la temperatura',
+    series: [
+      { data: curve, y: d => d.e, color: '--c-ref', name: 'Modelo' },
+      { data: curve, y: d => d.th, color: '--c-th', name: 'Teórica' },
+    ],
+    x: d => d.t, xKind: 'num', xFmt: v => `${fmt(v, 0)} °C`, xTickFmt: v => `${fmt(v, 0)} °C`, unit: '%', dec: 2, endLabels: false,
+    points: [{ x: wiT, y: mdl.predictEff(g, wiT), color: '--c-ref' }, { x: wiT, y: effTh(wiT), color: '--c-th' }],
+    aria: 'Eficiencia del modelo y teórica según la temperatura',
   });
 }
 
@@ -139,7 +148,7 @@ function render() {
   // Mismo dominio en ambos ejes para que la diagonal sea de 45°
   const all = pairs.flatMap(p => [p.real, p.pred]), lo = Math.min(...all), hi = Math.max(...all), pad = (hi - lo) * .05;
   scatter($('#ml-sc', root), {
-    data: pairs, x: d => d.real, y: d => d.pred, color: '--c-ml', identity: true, lastLabel: 'ahora',
+    data: pairs, x: d => d.real, y: d => d.pred, color: '--c-e', identity: true, lastLabel: 'ahora',
     xDomain: [lo - pad, hi + pad], yDomain: [lo - pad, hi + pad],
     xTick: v => fmt(v, 1) + ' %', yTick: v => fmt(v, 1), tip: d => `${hhmmss(d.ts)}<b class="tnum">real ${fmt(d.real, 2)} % · pred. ${fmt(d.pred, 2)} %</b>`,
     aria: 'Eficiencia predicha contra real',

@@ -94,7 +94,8 @@ let uid = 0;
  * Gráfica de líneas.
  * o.series: [{ data, y: d => valor, color: '--c-p', name }]
  * o.x: d => x (por defecto d.ts) · o.xKind: 'time' | 'elapsed' | 'num'
- * o.unit, o.dec, o.zero, o.ref: [{ y, label }], o.endLabels, o.xFmt (tooltip), o.xTickFmt
+ * o.unit, o.dec, o.zero, o.ref: [{ y, label, color }], o.bands: [{ from, to, color }] (zona de alerta),
+ * o.points, o.endLabels, o.xFmt (tooltip), o.xTickFmt
  */
 export function lineChart(el, o) {
   const W = el.clientWidth, H = el.clientHeight;
@@ -127,6 +128,11 @@ export function lineChart(el, o) {
     g += `<text x="${x}" y="${H - 6}" text-anchor="middle">${t.label}</text>`;
   });
   let marks = '';
+  // Zonas de alerta: franja suave del color de estado (el texto sigue en tinta)
+  (o.bands || []).forEach(b => {
+    const top = Y(Math.min(b.to ?? nt.hi, nt.hi)), bot = Y(Math.max(b.from ?? nt.lo, nt.lo));
+    if (bot - top > .5) marks += `<rect x="${pl}" y="${top}" width="${iw}" height="${bot - top}" fill="${col(b.color)}" fill-opacity=".12"/>`;
+  });
   S.forEach((s, k) => {
     const xs = s.xs.map(X), ys = s.ys.map(Y); s.px = xs; s.py = ys;
     const d = monotone(xs, ys);
@@ -137,9 +143,9 @@ export function lineChart(el, o) {
     marks += `<path d="${d}" fill="none" stroke="${s.c}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
   });
   (o.ref || []).forEach(r => {
-    const y = Y(r.y);
-    marks += `<line x1="${pl}" x2="${pl + iw}" y1="${y}" y2="${y}" stroke="var(--ink-3)" stroke-opacity=".8"/>
-      <text x="${pl + 6}" y="${y - 6}" font-size="11" font-weight="600" fill="var(--ink-2)" stroke="var(--ring)" stroke-width="3" paint-order="stroke">${r.label}</text>`;
+    const y = Y(r.y), right = r.align === 'right';
+    marks += `<line x1="${pl}" x2="${pl + iw}" y1="${y}" y2="${y}" stroke="${r.color ? col(r.color) : 'var(--ink-3)'}" stroke-width="${r.color ? 1.5 : 1}" stroke-opacity=".9"/>
+      <text x="${right ? pl + iw - 6 : pl + 6}" y="${y - 6}" text-anchor="${right ? 'end' : 'start'}" font-size="11" font-weight="600" fill="var(--ink-2)" stroke="var(--ring)" stroke-width="3" paint-order="stroke">${r.label}</text>`;
   });
   (o.points || []).forEach(p => {
     marks += `<circle cx="${X(p.x)}" cy="${Y(p.y)}" r="6" fill="${col(p.color)}" stroke="var(--ring)" stroke-width="2"/>`;
@@ -309,11 +315,14 @@ export function spark(el, data, y, color) {
     <circle cx="${xs[xs.length - 1]}" cy="${yv[yv.length - 1]}" r="4" fill="${c}" stroke="var(--ring)" stroke-width="2"/></svg>`;
 }
 
-export function ring(svg, pct, color = '--c-p') {
+export function ring(svg, pct, color = '--c-p', thr = null) {
   const r = 34, C = 2 * Math.PI * r, f = clamp(pct, 0, 100) / 100, c = col(color);
+  // Marca del umbral sobre el anillo
+  const a = thr == null ? 0 : (thr / 100 * 360 - 90) * Math.PI / 180;
+  const tick = thr == null ? '' : `<line x1="${42 + (r - 7) * Math.cos(a)}" y1="${42 + (r - 7) * Math.sin(a)}" x2="${42 + (r + 7) * Math.cos(a)}" y2="${42 + (r + 7) * Math.sin(a)}" stroke="var(--ink)" stroke-width="2.5" stroke-linecap="round"/>`;
   svg.innerHTML = `
     <circle cx="42" cy="42" r="${r}" fill="none" stroke="${c}" stroke-opacity=".18" stroke-width="8"/>
     <circle cx="42" cy="42" r="${r}" fill="none" stroke="${c}" stroke-width="8" stroke-linecap="round"
       stroke-dasharray="${C * f} ${C}" transform="rotate(-90 42 42)" style="transition: stroke-dasharray .6s ease"/>
-    <text x="42" y="47" text-anchor="middle" font-size="17" font-weight="700" fill="var(--ink)">${Math.round(pct)}%</text>`;
+    ${tick}<text x="42" y="47" text-anchor="middle" font-size="17" font-weight="700" fill="var(--ink)">${Math.round(pct)}%</text>`;
 }

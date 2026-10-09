@@ -1,7 +1,8 @@
 import { config, DEFAULTS, saveConfig } from '../store.js';
-import { live, SESSIONS } from '../sim.js';
+import { live, SESSIONS, SCENARIOS } from '../sim.js';
 import { fmt } from '../charts.js';
-import { $, $$, ic, viewHeader, toast } from '../ui.js';
+import { etaNominal, etaThreshold, irradiance } from '../physics.js';
+import { $, $$, ic, viewHeader, toast, infoBtn } from '../ui.js';
 
 let root, draft, dirty = false;
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -34,11 +35,15 @@ function mount(el) {
             ${num('panel.area', 'Área', 'cm²', 1)}
             ${num('panel.coefT', 'Coeficiente de temperatura', '%/°C', .01, 'Pérdida de potencia por cada °C sobre 25 °C')}
           </div>
+          <div style="margin-top:6px">${toggle('panel.verificado', 'Datos verificados con la ficha técnica', 'Mientras esté apagado, el dashboard marca estos valores como «de ejemplo»')}</div>
           <div class="preview-note" id="pv-panel"></div>`)}
         ${card(3, '--c-v', 'i-wifi', 'Conexión', 'Origen de los datos en tiempo real', `
           <div class="field" style="margin-top:14px"><span class="lbl">Fuente de datos</span>
             <div class="seg seg--flat" role="group" aria-label="Fuente de datos" style="align-self:flex-start">
               <button data-mode="esp32">ESP32 por Wi‑Fi</button><button data-mode="sim">Simulador</button></div></div>
+          <div class="field" id="cfg-scenario" style="margin-top:14px"><span class="lbl">Escenario del simulador · se aplica al instante</span>
+            <div class="scenario" role="group" aria-label="Escenario del simulador">${Object.entries(SCENARIOS).map(([k, s]) => `<button data-scenario="${k}">${s.label}</button>`).join('')}</div>
+            <span class="hint">Para probar el dashboard y las alertas: «Panel sucio» dispara el mantenimiento y «Calor extremo» la alerta de temperatura.</span></div>
           <div class="form">
             ${text('conexion.ip', 'IP del ESP32', false, 'Red ESP32_Panel_Solar')}
             ${num('conexion.puerto', 'Puerto TCP', '', 1)}
@@ -58,7 +63,8 @@ function mount(el) {
             ${num('sensores.iMin', 'Corriente mínima', 'mA', .01, 'Por debajo se considera 0 (oscuridad)')}
             ${select('sensores.ina', 'Rango del INA219', [['32V_1A', '32 V · 1 A (alta precisión)'], ['32V_2A', '32 V · 2 A'], ['16V_400mA', '16 V · 400 mA']])}
           </div>
-          <div style="margin-top:6px">${toggle('sensores.ldrInvertir', 'Invertir lectura del LDR', 'Si el divisor está cableado al revés (más luz = menos %)')}</div>
+          <div style="margin-top:6px">${toggle('sensores.ldrCalibrado', 'LDR calibrado', 'Enciéndelo cuando el factor se haya medido contra una referencia (piranómetro o día despejado ≈ 1000 W/m²)')}
+            ${toggle('sensores.ldrInvertir', 'Invertir lectura del LDR', 'Si el divisor está cableado al revés (más luz = menos %)')}</div>
           <div class="preview-note" id="pv-sens"></div>`)}
         ${card(4, '--serious', 'i-alert', 'Alertas', 'Cuándo avisar en la vista En vivo', `
           <div class="form">
@@ -66,6 +72,13 @@ function mount(el) {
             ${num('alertas.pMin', 'Potencia mínima', 'mW', 1, 'Por debajo: «Sin potencia»')}
             ${num('alertas.sinDatos', 'Tiempo sin datos', 's', 1, 'Marca la conexión como perdida')}
           </div>
+          <h3 class="card__title" style="font-size:13.5px;margin-top:16px">Mantenimiento ${infoBtn('mant', 'alerta de mantenimiento')}</h3>
+          <div class="form" style="margin-top:8px">
+            ${num('alertas.mant', 'Umbral de rendimiento', '%', 1, '% de la eficiencia nominal')}
+            ${num('alertas.mantGmin', 'Irradiancia mínima', 'W/m²', 10, 'Con menos luz no se evalúa')}
+            ${num('alertas.mantMin', 'Ventana sostenida', 'min', 1, 'Mediana de este periodo')}
+          </div>
+          <div class="preview-note" id="pv-alert"></div>
           <div style="margin-top:6px">${toggle('alertas.sonido', 'Aviso sonoro', 'Reproduce un tono al entrar en alerta')}</div>`)}
         ${card(6, '--c-ml', 'i-image', 'Apariencia', 'Tema y fondo se aplican al instante en este navegador', `
           <div class="form">${text('ui.equipo', 'Nombre en el saludo', true, 'Ej.: «Buenos días, equipo SIMON»')}</div>
@@ -101,6 +114,13 @@ function mount(el) {
     set(draft, path, v); markDirty();
   });
   $$('[data-mode]', el).forEach(b => b.addEventListener('click', () => { draft.conexion.modo = b.dataset.mode; fillMode(); markDirty(); }));
+  // El escenario se aplica al instante (es una herramienta de prueba, no un ajuste del sistema)
+  $$('[data-scenario]', el).forEach(b => b.addEventListener('click', () => {
+    draft.conexion.escenario = b.dataset.scenario;
+    saveConfig({ conexion: { escenario: b.dataset.scenario } });
+    fillMode();
+    toast(`Escenario «${SCENARIOS[b.dataset.scenario].label}»: el cambio llega en ~1 min, como en la realidad`);
+  }));
   $('#cfg-save', el).addEventListener('click', () => { saveConfig(clone(draft)); dirty = false; updateBar(); toast('Configuración guardada'); });
   $('#cfg-discard', el).addEventListener('click', () => { draft = clone(config); fill(); dirty = false; updateBar(); });
   $('#cfg-defaults', el).addEventListener('click', () => { draft = clone(DEFAULTS); fill(); markDirty(); toast('Valores de fábrica cargados: pulsa Guardar para aplicarlos'); });
@@ -112,6 +132,8 @@ function mount(el) {
 
 function fillMode() {
   $$('[data-mode]', root).forEach(b => b.setAttribute('aria-pressed', b.dataset.mode === draft.conexion.modo));
+  $$('[data-scenario]', root).forEach(b => b.setAttribute('aria-pressed', b.dataset.scenario === config.conexion.escenario));
+  $('#cfg-scenario', root).hidden = draft.conexion.modo !== 'sim';
   $$('[data-path^="conexion."]', root).forEach(i => { if (i.type !== 'checkbox') i.disabled = draft.conexion.modo === 'sim'; });
 }
 
@@ -125,10 +147,12 @@ function fill() {
 
 function previews() {
   const p = draft.panel, s = draft.sensores, last = live.data[live.data.length - 1];
-  const eta = p.nominal / (1000 * p.area / 1e4) * 100;
-  $('#pv-panel', root).innerHTML = `Eficiencia nominal: <b>${fmt(eta, 1)} %</b> = ${fmt(p.nominal, 1)} W / (1000 W/m² × ${fmt(p.area / 1e4, 4)} m²)`;
+  $('#pv-panel', root).innerHTML = `Eficiencia nominal: <b>${fmt(etaNominal(draft), 2)} %</b> = ${fmt(p.nominal, 1)} W / (1000 W/m² × ${fmt(p.area / 1e4, 4)} m²)`
+    + (p.verificado ? '' : `<br><span class="st-warning">▲</span> Valores de ejemplo: reemplázalos con la ficha técnica del panel real. La eficiencia depende directamente de la potencia nominal y del área.`);
+  const a = draft.alertas;
+  $('#pv-alert', root).innerHTML = `Revisar el panel si la eficiencia mediana de ${fmt(a.mantMin, 0)} min, con irradiancia ≥ ${fmt(a.mantGmin, 0)} W/m², baja de <b>${fmt(etaThreshold(draft), 2)} %</b> (${fmt(a.mant, 0)} % de ${fmt(etaNominal(draft), 2)} %).`;
   const g = s.ldrInvertir ? 100 - last.g : last.g;
-  $('#pv-sens', root).innerHTML = `Lectura actual: <b>${fmt(g, 1)} %</b> de luz ≈ <b>${fmt(g * s.ldrFactor, 0)} W/m²</b> · temperatura <b>${fmt(last.t + s.lm35Offset, 1)} °C</b>`;
+  $('#pv-sens', root).innerHTML = `Lectura actual: <b>${fmt(g, 1)} %</b> de luz ≈ <b>${fmt(irradiance(last.g, draft), 0)} W/m²</b>${s.ldrCalibrado ? '' : ' (estimada, sin calibrar)'} · temperatura <b>${fmt(last.t + s.lm35Offset, 1)} °C</b>`;
   $('#pv-datos', root).innerHTML = `Siguiente archivo: <b>${draft.datos.base}_v${SESSIONS.length + 1}.csv</b><br>Columnas: Segundos, V_Panel_V, Corriente_mA, Potencia_mW, Temperatura_C, Luz_Pct${draft.datos.timestamp ? ', timestamp' : ''}`;
 }
 

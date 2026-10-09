@@ -2,6 +2,7 @@
 import { prefs, config, bus } from './store.js';
 import { live, stepLive } from './sim.js';
 import { $, $$ } from './ui.js';
+import { INFO } from './info.js';
 import live$ from './views/live.js';
 import analisis from './views/analisis.js';
 import prediccion from './views/prediccion.js';
@@ -74,8 +75,32 @@ document.addEventListener('click', e => {
   }
   if (!pop.contains(e.target)) closePop();
 });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closePop(); });
-addEventListener('scroll', closePop, { passive: true });
+/* ---------- Ficha de indicador: qué mide, por qué, cómo, umbral ---------- */
+const infoPop = $('#info-pop');
+let infoFor = null;
+function closeInfo() { infoPop.classList.remove('open'); infoFor?.setAttribute('aria-expanded', false); infoFor = null; }
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-info]');
+  if (b) {
+    e.stopPropagation();
+    if (infoFor === b) return closeInfo();
+    closeInfo();
+    const f = INFO[b.dataset.info]?.(); if (!f) return;
+    const row = (t, d) => d ? `<div><dt>${t}</dt><dd>${d}</dd></div>` : '';
+    infoPop.innerHTML = `<h4>${f.title}</h4><dl>${row('Qué mide', f.que)}${row('Por qué está aquí', f.porque)}${row('Cómo se calcula', f.como)}${row('Umbral', f.umbral)}</dl>`;
+    infoFor = b; b.setAttribute('aria-expanded', true);
+    infoPop.classList.add('open');
+    const r = b.getBoundingClientRect(), w = Math.min(340, innerWidth - 24), h = infoPop.offsetHeight;
+    infoPop.style.width = w + 'px'; infoPop.style.right = 'auto';
+    infoPop.style.left = Math.max(12, Math.min(r.left - 16, innerWidth - w - 12)) + 'px';
+    infoPop.style.top = (r.bottom + 8 + h > innerHeight && r.top - h - 8 > 0 ? r.top - h - 8 : r.bottom + 8) + 'px';
+    return;
+  }
+  if (!infoPop.contains(e.target)) closeInfo();
+});
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closePop(); closeInfo(); } });
+addEventListener('scroll', () => { closePop(); closeInfo(); }, { passive: true });
 
 /* ---------- Estado de conexión (todas las vistas) ---------- */
 export function updateStatus() {
@@ -98,7 +123,7 @@ function route() {
   $$('[data-route]').forEach(a => a.dataset.route === key ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current'));
   document.title = `SIMON · ${TITLES[key]}`;
   current = view;
-  closePop();
+  closePop(); closeInfo();
   syncBgControls();
   $$('[data-theme-choice]').forEach(b => b.setAttribute('aria-pressed', b.dataset.themeChoice === prefs.get('theme', 'system')));
   updateStatus();
