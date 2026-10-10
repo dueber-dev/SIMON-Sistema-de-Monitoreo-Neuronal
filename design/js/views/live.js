@@ -126,18 +126,17 @@ function render() {
   const ratio = mt.state === 'sin-luz' ? efficiency(last.p, last.g) / etaN * 100 : mt.ratio;
   ring($('#ring', root), ratio, '--c-e', A.mant);
   $('#perf-note', root).textContent = mt.state === 'sin-luz'
-    ? `Poca luz para evaluar: valor instantáneo. La marca es el umbral de ${fmt(A.mant, 0)} %.`
+    ? `Luz o cobertura temporal insuficiente: valor instantáneo. Umbral de ${fmt(A.mant, 0)} %.`
     : `Mediana de ${fmt(A.mantMin, 0)} min con buena luz. La marca es el umbral de mantenimiento (${fmt(A.mant, 0)} %).`;
 
   // Estado del sistema: ícono + texto, nunca solo color
-  const sim = config.conexion.modo === 'sim', esc = SCENARIOS[config.conexion.escenario] || SCENARIOS.normal;
+  const esc = SCENARIOS[config.conexion.escenario] || SCENARIOS.normal;
   const rows = [
     live.paused ? ['warning', 'i-alert', 'Vista en pausa', 'Los datos siguen llegando; la vista está congelada']
-      : sim ? ['good', 'i-wifi', 'Simulador activo', `Escenario: ${esc.label} · 1 Hz · sin hardware`]
-        : ['good', 'i-wifi', 'Conexión estable', `TCP ${config.conexion.ip}:${config.conexion.puerto} · 0 tramas perdidas`],
+      : ['good', 'i-wifi', 'Simulador activo', `Escenario: ${esc.label} · datos sintéticos · sin hardware`],
     mt.state === 'revisar' ? ['warning', 'i-wrench', 'Revisar o limpiar el panel', `η ${fmt(mt.median, 2)} % bajo el umbral de ${fmt(thr, 2)} % (últimos ${fmt(A.mantMin, 0)} min)`]
       : mt.state === 'ok' ? ['good', 'i-wrench', 'Mantenimiento al día', `η ${fmt(mt.median, 2)} % · umbral ${fmt(thr, 2)} %`]
-        : ['muted', 'i-wrench', 'Mantenimiento sin evaluar', `Se evalúa con irradiancia ≥ ${fmt(A.mantGmin, 0)} W/m²`],
+        : ['muted', 'i-wrench', 'Mantenimiento sin evaluar', `Requiere ${fmt(A.mantMin, 0)} min y luz ≥ ${fmt(A.mantGmin, 0)} W/m²`],
     last.t > A.tMax ? ['warning', 'i-alert', 'Temperatura alta', `${fmt(last.t, 1)} °C · umbral ${fmt(A.tMax, 0)} °C`]
       : ['good', 'i-check', 'Temperatura en rango', `${fmt(last.t, 1)} °C · umbral ${fmt(A.tMax, 0)} °C`],
     last.p < A.pMin ? ['critical', 'i-alert', 'Sin potencia', 'Falta de irradiación o circuito abierto']

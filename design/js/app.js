@@ -104,10 +104,9 @@ addEventListener('scroll', () => { closePop(); closeInfo(); }, { passive: true }
 
 /* ---------- Estado de conexión (todas las vistas) ---------- */
 export function updateStatus() {
-  const sim = config.conexion.modo === 'sim';
   $$('.js-status').forEach(p => p.classList.toggle('is-paused', live.paused));
-  $$('.js-status-txt').forEach(b => { b.textContent = live.paused ? 'Vista en pausa' : sim ? 'Simulador activo' : 'ESP32 conectado'; });
-  $$('.js-status-meta').forEach(s => { s.textContent = ` · 1 Hz${sim ? '' : ' · ' + config.conexion.ip}`; });
+  $$('.js-status-txt').forEach(b => { b.textContent = live.paused ? 'Simulador · vista en pausa' : 'Simulador activo'; });
+  $$('.js-status-meta').forEach(s => { s.textContent = ' · datos sintéticos · sin hardware'; });
   $$('.js-team').forEach(b => { b.textContent = config.ui.equipo; });
   $$('.js-panel-name').forEach(b => { b.textContent = config.panel.nombre; });
 }

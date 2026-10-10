@@ -40,7 +40,7 @@ function mount(el) {
         ${card(3, '--c-v', 'i-wifi', 'Conexión', 'Origen de los datos en tiempo real', `
           <div class="field" style="margin-top:14px"><span class="lbl">Fuente de datos</span>
             <div class="seg seg--flat" role="group" aria-label="Fuente de datos" style="align-self:flex-start">
-              <button data-mode="esp32">ESP32 por Wi‑Fi</button><button data-mode="sim">Simulador</button></div></div>
+              <button data-mode="esp32" disabled title="Pendiente de implementar el puente con el hardware">ESP32 por Wi‑Fi · pendiente</button><button data-mode="sim">Simulador</button></div><span class="hint">Esta maqueta genera datos sintéticos. Los ajustes de conexión y firmware son preparatorios y no controlan el ESP32.</span></div>
           <div class="field" id="cfg-scenario" style="margin-top:14px"><span class="lbl">Escenario del simulador · se aplica al instante</span>
             <div class="scenario" role="group" aria-label="Escenario del simulador">${Object.entries(SCENARIOS).map(([k, s]) => `<button data-scenario="${k}">${s.label}</button>`).join('')}</div>
             <span class="hint">Para probar el dashboard y las alertas: «Panel sucio» dispara el mantenimiento y «Calor extremo» la alerta de temperatura.</span></div>
@@ -63,7 +63,7 @@ function mount(el) {
             ${num('sensores.iMin', 'Corriente mínima', 'mA', .01, 'Por debajo se considera 0 (oscuridad)')}
             ${select('sensores.ina', 'Rango del INA219', [['32V_1A', '32 V · 1 A (alta precisión)'], ['32V_2A', '32 V · 2 A'], ['16V_400mA', '16 V · 400 mA']])}
           </div>
-          <div style="margin-top:6px">${toggle('sensores.ldrCalibrado', 'LDR calibrado', 'Enciéndelo cuando el factor se haya medido contra una referencia (piranómetro o día despejado ≈ 1000 W/m²)')}
+          <div style="margin-top:6px">${toggle('sensores.ldrCalibrado', 'LDR calibrado', 'Requiere comparación simultánea contra una referencia de irradiancia; un día despejado no constituye una calibración')}
             ${toggle('sensores.ldrInvertir', 'Invertir lectura del LDR', 'Si el divisor está cableado al revés (más luz = menos %)')}</div>
           <div class="preview-note" id="pv-sens"></div>`)}
         ${card(4, '--serious', 'i-alert', 'Alertas', 'Cuándo avisar en la vista En vivo', `

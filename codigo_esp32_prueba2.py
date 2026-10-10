@@ -1,81 +1,103 @@
-import socket
+"""Cliente TCP del ESP32. Conserva seis columnas y separa reinicios en otro CSV."""
 import csv
+import math
+from pathlib import Path
+import socket
 import time
-import os
-from datetime import datetime
 
-# --- CONFIGURACIÓN DE RED ---
 TCP_IP = '192.168.4.1'
 TCP_PORT = 8080
+HEADERS = ['Segundos', 'V_Panel_V', 'Corriente_mA', 'Potencia_mW', 'Temperatura_C', 'Luz_Pct']
+MAX_LINE_BYTES = 512
 
-# --- CREACIÓN AUTOMÁTICA DEL ARCHIVO CSV ---
-version = 1
-while os.path.exists(f"datos_panel_solar_wifi_v{version}.csv"):
-    version += 1
-archivo_csv = f"datos_panel_solar_wifi_v{version}.csv"
 
-# Nuevos encabezados para las 6 columnas del INA219
-encabezados = ['Segundos', 'V_Panel_V', 'Corriente_mA', 'Potencia_mW', 'Temperatura_C', 'Luz_Pct']
+def parse_record(line):
+    """Valida todos los campos sin transformar ni corregir las mediciones."""
+    values = line.strip().split(',')
+    if len(values) != len(HEADERS):
+        raise ValueError('Se requieren seis campos')
+    numbers = [float(value) for value in values]
+    if not all(math.isfinite(value) for value in numbers):
+        raise ValueError('La trama contiene valores no finitos')
+    if numbers[0] < 0 or not 0 <= numbers[5] <= 100:
+        raise ValueError('Tiempo o porcentaje de luz fuera de rango')
+    return values
 
-with open(archivo_csv, mode='w', newline='') as file:
-    writer = csv.writer(file)
-    writer.writerow(encabezados)
 
-def imprimir_encabezado_consola():
-    print("=======================================================================================================")
-    print(f" SISTEMA DE MONITOREO WI-FI (INA219) | IP: {TCP_IP}:{TCP_PORT} | ARCHIVO: {archivo_csv}")
-    print("=======================================================================================================")
-    print(f"{'Hora':<10} {'Tiempo':<8} {'V_Panel':<10} {'Corriente':<12} {'Potencia':<12} {'Temp':<10} {'Luz':<10}")
-    print("-" * 103)
+def read_lines(sock):
+    """TCP puede fragmentar o agrupar tramas; limita también la cola incompleta."""
+    buffer = b''
+    while chunk := sock.recv(1024):
+        buffer += chunk
+        while b'\n' in buffer:
+            line, buffer = buffer.split(b'\n', 1)
+            if len(line) > MAX_LINE_BYTES:
+                raise ValueError('Trama demasiado larga')
+            try:
+                yield line.decode('ascii').strip()
+            except UnicodeDecodeError:
+                print('Trama descartada: codificación inválida', flush=True)
+        if len(buffer) > MAX_LINE_BYTES:
+            raise ValueError('Trama sin delimitador o demasiado larga')
+    # Una trama sin salto de línea al cerrar la conexión no se guarda.
 
-imprimir_encabezado_consola()
 
-# --- BUCLE PRINCIPAL DE CONEXIÓN Y LECTURA ---
-while True:
+def new_csv(directory):
+    directory = Path(directory)
+    version = 1
+    while True:
+        path = directory / f'datos_panel_solar_wifi_v{version}.csv'
+        try:
+            file = path.open('x', newline='', encoding='utf-8')
+        except FileExistsError:
+            version += 1
+            continue
+        writer = csv.writer(file)
+        writer.writerow(HEADERS)
+        file.flush()
+        return path, file, writer
+
+
+def record_connection(sock, state, directory):
+    for line in read_lines(sock):
+        if not line:
+            continue
+        try:
+            values = parse_record(line)
+        except ValueError as error:
+            print(f'Trama descartada: {error}', flush=True)
+            continue
+        seconds = float(values[0])
+        if state['file'] is None or seconds < state['last_seconds']:
+            if state['file'] is not None:
+                state['file'].close()
+                state['file'] = None
+            path, state['file'], state['writer'] = new_csv(directory)
+            print(f'Registrando en {path}', flush=True)
+        state['writer'].writerow(values)
+        state['file'].flush()
+        state['last_seconds'] = seconds
+        print(','.join(values), flush=True)
+
+
+def main(directory='.'):
+    state = {'file': None, 'writer': None, 'last_seconds': -1}
     try:
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] Conectando al ESP32 por Wi-Fi...")
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(5.0)
-        sock.connect((TCP_IP, TCP_PORT))
-        print(f"[{datetime.now().strftime('%H:%M:%S')}] Enlace TCP establecido con éxito.\n")
-        
-        sock.settimeout(None) 
-        buffer = ""
-        
         while True:
-            data = sock.recv(1024)
-            if not data:
-                break 
-                
-            buffer += data.decode('utf-8', errors='ignore')
-            lineas = buffer.split('\n')
-            
-            for i in range(len(lineas) - 1):
-                linea = lineas[i].strip()
-                if not linea:
-                    continue
-                    
-                datos = linea.split(',')
-                
-                # VALIDACIÓN: Ahora exigimos exactamente 6 datos
-                if len(datos) == 6:
-                    try:
-                        # Desempaquetamos los 6 valores
-                        segundos, v_panel, corriente, potencia, temp, luz = datos
-                        
-                        # Imprimir en consola con formato alineado
-                        hora_actual = datetime.now().strftime('%H:%M:%S')
-                        print(f"{hora_actual:<10} {segundos+'s':<8} {float(v_panel):>5.2f} V   {float(corriente):>7.1f} mA   {float(potencia):>7.1f} mW   {float(temp):>5.1f} °C   {float(luz):>5.1f} %", flush=True)                        
-                        # Guardar en CSV
-                        with open(archivo_csv, mode='a', newline='') as file:
-                            writer = csv.writer(file)
-                            writer.writerow(datos)
-                            
-                    except ValueError:
-                        pass # Ignora fragmentos dañados por interferencia Wi-Fi
-            buffer = lineas[-1]
-        
-    except (socket.timeout, ConnectionRefusedError, socket.error):
-        time.sleep(2) 
+            try:
+                print(f'Conectando a {TCP_IP}:{TCP_PORT}', flush=True)
+                with socket.create_connection((TCP_IP, TCP_PORT), timeout=5) as sock:
+                    sock.settimeout(10)
+                    record_connection(sock, state, directory)
+            except (OSError, ValueError) as error:
+                print(f'Enlace interrumpido: {error}', flush=True)
+            time.sleep(2)
+    except KeyboardInterrupt:
+        print('Registro detenido', flush=True)
     finally:
-        sock.close()
+        if state['file'] is not None:
+            state['file'].close()
+
+
+if __name__ == '__main__':
+    main()
