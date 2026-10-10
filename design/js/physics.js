@@ -29,10 +29,26 @@ export const etaThreshold = (cfg = config) => etaNominal(cfg) * cfg.alertas.mant
  * atardecer no disparen falsas alarmas. Devuelve 'ok' | 'revisar' | 'sin-luz'.
  */
 export function maintenance(data, cfg = config, windowS = cfg.alertas.mantMin * 60) {
-  const win = data.slice(-windowS).filter(d => irradiance(d.g, cfg) >= cfg.alertas.mantGmin);
-  if (win.length < 60) return { state: 'sin-luz', n: win.length };
+  // ts está en milisegundos. No confundir segundos con número de muestras:
+  // una pausa del navegador o un registro irregular no acredita una ventana.
+  const valid = data.filter(d => Number.isFinite(d.ts) && Number.isFinite(d.p) && Number.isFinite(d.g));
+  const end = valid.at(-1)?.ts;
+  const recent = valid.filter(d => d.ts <= end && d.ts > end - windowS * 1000);
+  const win = recent.filter(d => irradiance(d.g, cfg) >= cfg.alertas.mantGmin);
+  const required = Number.isFinite(windowS) ? windowS : cfg.alertas.mantMin * 60;
+  // Cobertura mínima del 90 % a 1 Hz, contando segundos distintos, y luz
+  // suficiente en la muestra más reciente. Infinity resume toda la sesión.
+  const seconds = new Set(win.map(d => Math.floor(d.ts / 1000)));
+  if (!(required > 0) || !win.length ||
+      irradiance(recent.at(-1)?.g, cfg) < cfg.alertas.mantGmin ||
+      seconds.size < Math.ceil(required * .9) ||
+      win.at(-1).ts - win[0].ts < (required - 1) * 1000) {
+    return { state: 'sin-luz', n: win.length };
+  }
   const effs = win.map(d => efficiency(d.p, d.g, cfg)).sort((a, b) => a - b);
-  const median = effs[effs.length >> 1], thr = etaThreshold(cfg);
+  const middle = effs.length >> 1;
+  const median = effs.length % 2 ? effs[middle] : (effs[middle - 1] + effs[middle]) / 2;
+  const thr = etaThreshold(cfg);
   return {
     state: median < thr ? 'revisar' : 'ok',
     median, n: win.length,

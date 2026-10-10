@@ -28,12 +28,15 @@ function merge(base, over) {
 }
 
 export const config = merge(DEFAULTS, safe.get('config', {}));
+// No existe puente TCP/WebSocket en esta maqueta, incluso con preferencias antiguas.
+config.conexion.modo = 'sim';
 
 // Avisa a las vistas cuando cambia la configuración
 export const bus = new EventTarget();
 
 export function saveConfig(next) {
   for (const k in next) Object.assign(config[k], next[k]);
+  config.conexion.modo = 'sim';
   safe.set('config', config);
   bus.dispatchEvent(new Event('config'));
 }

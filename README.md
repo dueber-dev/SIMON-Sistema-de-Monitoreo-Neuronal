@@ -47,3 +47,11 @@ Estructura: `design/index.html` (esqueleto y router), `design/css/`, `design/js/
 - [ ] Backend FastAPI: puente TCP → CSV → WebSocket, con simulador
 - [ ] Frontend Astro + TypeScript + Tailwind conectado al backend
 - [ ] Modelo de predicción de eficiencia
+
+## Auditoría y pruebas de software
+
+La maqueta siempre identifica sus datos como sintéticos, incluso si existían preferencias antiguas de conexión al ESP32. La entrada de hardware permanece deshabilitada hasta implementar un puente real. Las alertas usan timestamps y cobertura temporal; una sola ráfaga de muestras no representa cinco minutos.
+
+Ejecutar con Node.js 22.7 o posterior: `node --test tests/physics.test.mjs`. Estas pruebas verifican cálculos y estados del software; no certifican calibración, cableado ni exactitud experimental. Consultar `docs/auditoria-rubrica.md` para evidencias y pendientes.
+
+El cliente TCP valida los seis campos, rechaza valores no finitos, limita tramas y reconecta si pasan 10 segundos sin datos. Un retroceso en el reloj del ESP32 inicia otro CSV; las lecturas válidas mantienen su representación original. Pruebas del receptor: `python -m unittest discover -s tests -p "test_*.py"`. No recupera muestras perdidas durante una desconexión.

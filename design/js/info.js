@@ -16,23 +16,23 @@ export const INFO = {
   }),
   v: () => ({
     title: 'Voltaje',
-    que: 'Tensión en bornes del panel, en V, medida en el bus del INA219.',
+    que: 'Tensión del bus VIN− respecto de GND, en V. Con el shunt antes de la carga, corresponde a la carga; en esta maqueta es simulada.',
     porque: 'Cae con la temperatura y con conexiones flojas. Si el voltaje baja y la irradiancia no, hay un problema eléctrico, no de luz.',
     como: 'Lectura directa del registro de bus del INA219 (resolución 4 mV).',
-    umbral: `Referencia: Voc del panel = ${n(config.panel.voc)} V. Valores cercanos a 0 V indican circuito abierto.`,
+    umbral: `Referencia: Voc del panel = ${n(config.panel.voc)} V. Un circuito abierto puede conservar Voc y tener corriente nula; revisar V e I conjuntamente.`,
   }),
   i: () => ({
     title: 'Corriente',
     que: 'Corriente que entrega el panel, en mA, medida en la resistencia shunt del INA219.',
     porque: 'Es casi proporcional a la irradiancia: permite comprobar que el LDR y el panel «ven» la misma luz.',
-    como: 'Lectura del INA219 en modo 32 V · 1 A (resolución ≈ 0,1 mA). Bajo el mínimo configurado se considera 0.',
+    como: 'El firmware usa 32 V · 1 A: escala de registro de 0,04 mA; el shunt de 0,1 Ω con paso de 10 µV equivale a 0,1 mA. El ajuste de esta maqueta no cambia el firmware.',
     umbral: `Isc del panel = ${n(config.panel.isc, 0)} mA: no debería superarse.`,
   }),
   t: () => ({
     title: 'Temperatura del panel',
-    que: 'Temperatura de la cara posterior del panel, en °C, medida con un LM35.',
+    que: 'Temperatura simulada en esta maqueta. En hardware, solo representa el panel si el LM35 está acoplado térmicamente a su cara posterior.',
     porque: 'El calor reduce el voltaje y la eficiencia (≈ 0,4 % por cada °C sobre 25 °C). Separa una pérdida por calor de una por suciedad.',
-    como: 'LM35: 10 mV/°C leídos por el ADC de 12 bits del ESP32 (≈ 0,08 °C por paso) más el ajuste de calibración.',
+    como: 'LM35: 10 mV/°C. El firmware convierte el ADC mediante una aproximación 3,3/4095; debe calibrarse. El offset de esta maqueta solo se muestra en la previsualización.',
     umbral: `Alerta de temperatura alta sobre ${n(config.alertas.tMax, 0)} °C (franja amarilla en la gráfica).`,
   }),
   g: () => ({
@@ -45,7 +45,7 @@ export const INFO = {
   e: () => ({
     title: 'Eficiencia real',
     que: 'Qué fracción de la energía solar que llega al panel se convierte en electricidad.',
-    porque: 'Es el indicador que el modelo de ML va a predecir y el que revela suciedad o degradación, porque no depende de cuánta luz haya.',
+    porque: 'Normaliza la potencia por irradiancia y área. También depende de temperatura, punto de operación y calibración; por sí sola no identifica suciedad ni degradación.',
     como: `η = P / (G · A), con A = ${n(config.panel.area, 0)} cm². Se compara con la nominal: ${n(etaNominal())} % = P_nom / (1000 W/m² · A).`,
     umbral: `Umbral de mantenimiento: ${n(config.alertas.mant, 0)} % de la nominal = ${n(etaThreshold(), 2)} %.`,
   }),
@@ -68,7 +68,7 @@ export const INFO = {
     que: 'Lo que el panel debería entregar según su ficha técnica, comparado con lo que entrega.',
     porque: 'Contrasta la medición con el cálculo teórico. La diferencia son pérdidas (cableado, suciedad, error del LDR).',
     como: `P_teórica = P_nom · G/1000 · [1 + γ · (T − 25)], con P_nom = ${n(config.panel.nominal)} W y γ = ${n(config.panel.coefT, 2)} %/°C.`,
-    umbral: 'Una brecha mayor al 25 % sostenida coincide con la alerta de mantenimiento.',
+    umbral: 'Es una referencia aproximada de máxima potencia. La carga fija y la temperatura también explican diferencias; la alerta compara eficiencias sin compensación térmica.',
   }),
   energia: () => ({
     title: 'Energía generada',

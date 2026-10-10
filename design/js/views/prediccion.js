@@ -27,7 +27,7 @@ function mount(el) {
         </div>
       </article>
       <article class="card glass reveal" style="--i:2">
-        <div class="card__head"><div><h2 class="card__title">Modelo</h2><p class="card__sub">Regresión polinómica · demostración</p></div>
+        <div class="card__head"><div><h2 class="card__title">Modelo</h2><p class="card__sub">Ajuste sobre datos sintéticos de entrenamiento; sin evaluación independiente</p></div>
           <span class="badge" style="--mc:var(--c-ml)">${ic('i-ml', 15)}</span></div>
         <div class="kv">
           <div><b id="ml-r2">—</b><span>R²</span></div>
