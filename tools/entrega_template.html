@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SIMON · Entrega del dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f4f2ee; --surface: #ffffff; --surface-2: #f8f7f4;
+  --ink: #0b0b0f; --ink-2: #47474f; --ink-3: #74747e;
+  --line: rgba(11,11,15,.09); --accent: #eb6834; --accent-ink: #b8461a;
+  --good: #0a8a0a; --warning: #b77c00;
+  --shadow: 0 1px 2px rgba(20,24,45,.06), 0 18px 40px -24px rgba(20,24,45,.35);
+  --font: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI Variable", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #111218; --surface: #1a1c24; --surface-2: #20222b;
+    --ink: #ffffff; --ink-2: #c6c7d1; --ink-3: #8c8e9b;
+    --line: rgba(255,255,255,.09); --accent: #f07a45; --accent-ink: #ff9a6b;
+    --good: #2fbf2f; --warning: #f0b429;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 18px 40px -24px rgba(0,0,0,.8);
+  }
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+a { color: var(--accent-ink); }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* Barra superior */
+.top { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--bg) 82%, transparent); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border-bottom: 1px solid var(--line); }
+.top .wrap { display: flex; align-items: center; gap: 20px; height: 56px; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: -.01em; white-space: nowrap; }
+.brand i { width: 28px; height: 28px; border-radius: 9px; background: linear-gradient(145deg, #ffb35c, #eb6834 60%, #c9471b); display: grid; place-items: center; }
+.brand i svg { width: 16px; height: 16px; color: #fff; }
+.toc { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; margin-left: auto; }
+.toc::-webkit-scrollbar { display: none; }
+.toc a { color: var(--ink-2); text-decoration: none; font-size: 13.5px; font-weight: 500; padding: 6px 10px; border-radius: 999px; white-space: nowrap; }
+.toc a:hover { background: var(--surface); color: var(--ink); }
+
+/* Portada */
+.hero { padding: 64px 0 40px; }
+.eyebrow { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 600; color: var(--accent-ink); text-transform: uppercase; letter-spacing: .08em; }
+h1 { font-size: clamp(34px, 5vw, 54px); line-height: 1.06; letter-spacing: -.035em; margin: 12px 0 16px; font-weight: 700; max-width: 20ch; text-wrap: balance; }
+.lede { font-size: 19px; color: var(--ink-2); max-width: 62ch; margin: 0 0 28px; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 22px; color: var(--ink-3); font-size: 14px; margin-bottom: 28px; }
+.meta b { color: var(--ink); font-weight: 600; }
+.cta { display: flex; flex-wrap: wrap; gap: 10px; }
+.btn { display: inline-flex; align-items: center; gap: 8px; height: 46px; padding: 0 20px; border-radius: 14px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; text-decoration: none; transition: transform .15s, box-shadow .2s; box-shadow: var(--shadow); }
+.btn:hover { transform: translateY(-1px); }
+.btn:active { transform: scale(.98); }
+.btn:focus-visible, .shot:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.btn--accent { background: var(--accent); color: #fff; border-color: transparent; }
+.btn svg { width: 18px; height: 18px; }
+.hero-shot { margin-top: 40px; }
+
+/* Secciones */
+section { padding: 56px 0 8px; scroll-margin-top: 64px; }
+h2 { font-size: 30px; letter-spacing: -.025em; line-height: 1.15; margin: 0 0 8px; }
+h2 small { display: block; font-size: 13px; font-weight: 600; color: var(--accent-ink); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 6px; }
+h3 { font-size: 20px; letter-spacing: -.015em; margin: 0 0 6px; }
+.intro { color: var(--ink-2); max-width: 70ch; margin: 0 0 24px; }
+p { max-width: 72ch; }
+
+.cards { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px; margin: 20px 0 8px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 20px; padding: 20px; box-shadow: var(--shadow); }
+.card b { display: block; font-size: 15px; margin-bottom: 4px; }
+.card p { margin: 0; color: var(--ink-2); font-size: 14.5px; }
+.flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 18px 0; font-size: 14px; }
+.flow span { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; font-weight: 500; }
+.flow em { font-style: normal; color: var(--ink-3); }
+
+.steps { counter-reset: s; list-style: none; padding: 0; margin: 18px 0 0; display: grid; gap: 10px; max-width: 760px; }
+.steps li { counter-increment: s; position: relative; padding: 14px 16px 14px 56px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; color: var(--ink-2); font-size: 15px; }
+.steps li::before { content: counter(s); position: absolute; left: 16px; top: 13px; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; font-size: 13px; display: grid; place-items: center; }
+.steps b { color: var(--ink); }
+.note { margin-top: 16px; padding: 14px 16px; border-radius: 14px; background: var(--surface-2); border: 1px solid var(--line); color: var(--ink-2); font-size: 14px; max-width: 760px; }
+
+/* Figuras */
+figure { margin: 0 0 48px; }
+.shot { display: block; width: 100%; padding: 0; border: 1px solid var(--line); border-radius: 18px; overflow: hidden; background: var(--surface); box-shadow: var(--shadow); cursor: zoom-in; }
+.shot img { display: block; width: 100%; height: auto; }
+.shot--cap { max-height: 720px; }
+.shot--cap img { object-fit: cover; object-position: top; height: 720px; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 760px; }
+figcaption { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.15fr); gap: 8px 32px; margin-top: 16px; }
+figcaption h3 .n { color: var(--ink-3); font-weight: 600; margin-right: 6px; }
+figcaption p { margin: 0; color: var(--ink-2); font-size: 15px; }
+figcaption ul { margin: 0; padding-left: 18px; color: var(--ink-2); font-size: 14.5px; }
+figcaption li + li { margin-top: 4px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.chip { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent-ink); }
+.zoom-hint { font-size: 12.5px; color: var(--ink-3); margin-top: 6px; }
+
+/* Tablas */
+.table-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow); }
+table { width: 100%; min-width: 680px; border-collapse: collapse; font-size: 14.5px; }
+th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); font-weight: 600; padding: 14px 18px; border-bottom: 1px solid var(--line); background: var(--surface-2); }
+td { padding: 13px 18px; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--ink-2); }
+td:first-child { color: var(--ink); font-weight: 500; }
+tr:last-child td { border-bottom: 0; }
+.ok { display: inline-flex; align-items: center; gap: 6px; color: var(--good); font-weight: 600; white-space: nowrap; }
+.ok svg { width: 15px; height: 15px; }
+.lvl { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--line); color: var(--ink-2); white-space: nowrap; }
+code { font-size: .9em; padding: 1px 6px; border-radius: 6px; background: var(--surface-2); border: 1px solid var(--line); }
+.formula { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 13.5px; color: var(--ink); white-space: nowrap; }
+
+.limits { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
+.limits .card b { display: flex; align-items: center; gap: 8px; }
+.limits .card b svg { width: 16px; height: 16px; color: var(--warning); flex: none; }
+
+footer { margin-top: 64px; padding: 32px 0 48px; border-top: 1px solid var(--line); color: var(--ink-3); font-size: 14px; }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; }
+
+/* Visor de imágenes y dashboard */
+dialog { border: 0; padding: 0; background: transparent; max-width: none; max-height: none; }
+dialog::backdrop { background: rgba(6,8,14,.82); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+#lb { width: 100vw; height: 100vh; overflow: auto; }
+#lb img { display: block; max-width: min(1600px, 96vw); margin: 2vh auto; border-radius: 12px; }
+#demo { width: 100vw; height: 100vh; }
+#demo iframe { width: 100%; height: calc(100vh - 52px); border: 0; background: #1c2340; display: block; }
+.dlg-bar { height: 52px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 16px; background: #0d0f16; color: #fff; font-size: 14px; }
+.dlg-bar div { display: flex; gap: 8px; }
+.dlg-bar button, .lb-close { height: 34px; padding: 0 14px; border-radius: 10px; border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.08); color: #fff; font: inherit; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+.lb-close { position: fixed; top: 14px; right: 18px; z-index: 2; }
+
+@media (max-width: 860px) {
+  .cards, .limits { grid-template-columns: minmax(0,1fr); }
+  figcaption { grid-template-columns: minmax(0,1fr); }
+  .toc { display: none; }
+  .shot--cap, .shot--cap img { height: 460px; max-height: 460px; }
+}
+@media (max-width: 520px) { .pair { grid-template-columns: minmax(0,1fr); } .wrap { padding: 0 16px; } }
+@media print {
+  .top, .cta, dialog, .zoom-hint { display: none !important; }
+  body { background: #fff; font-size: 12pt; }
+  section { padding-top: 24px; break-before: page; }
+  figure, .card, tr { break-inside: avoid; }
+  .shot, .card, .table-wrap, .btn { box-shadow: none; }
+  .shot--cap, .shot--cap img { height: auto; max-height: none; }
+}
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .btn { transition: none; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <span class="brand"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg></i>SIMON</span>
+    <nav class="toc" aria-label="Contenido">
+      <a href="#sistema">El sistema</a><a href="#abrir">Cómo verlo</a><a href="#recorrido">Recorrido</a>
+      <a href="#rubrica">Rúbrica</a><a href="#indicadores">Indicadores</a><a href="#limitaciones">Limitaciones</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap hero">
+    <span class="eyebrow">Avance del proyecto · Diseño del dashboard</span>
+    <h1>Dashboard de monitoreo del panel solar</h1>
+    <p class="lede">SIMON mide el voltaje, la corriente, la temperatura y la irradiancia de un panel solar con un ESP32 y las convierte en decisiones: cuánto está generando el panel, qué tan eficiente es y cuándo hay que revisarlo.</p>
+    <div class="meta"><span><b>Equipo SIMON</b></span><span>Sistema de Monitoreo Neuronal</span><span>{{fecha}}</span></div>
+    <div class="cta">
+      <button class="btn btn--accent" data-demo><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z"/></svg>Abrir el dashboard interactivo</button>
+      <a class="btn" href="#recorrido">Ver las capturas</a>
+    </div>
+    <div class="hero-shot"><button class="shot" data-full="01-en-vivo" aria-label="Ampliar la vista En vivo"><img src="{{img:01-en-vivo}}" alt="Vista En vivo del dashboard con potencia, voltaje, corriente, temperatura, irradiancia y eficiencia"></button></div>
+  </div>
+
+  <section id="sistema"><div class="wrap">
+    <h2><small>1 · Contexto</small>Qué hace el sistema</h2>
+    <p class="intro">El ESP32 lee los sensores una vez por segundo y envía cada muestra por Wi‑Fi. El dashboard las muestra en tiempo real, guarda cada sesión en CSV y calcula los indicadores que necesitamos para entrenar el modelo de predicción de eficiencia.</p>
+    <div class="flow"><span>INA219 · LM35 · LDR</span><em>→</em><span>ESP32</span><em>→ Wi‑Fi TCP, 1 Hz →</em><span>Registro en CSV</span><em>→</em><span>Dashboard</span><em>→</em><span>Modelo de ML</span></div>
+    <div class="cards">
+      <div class="card"><b>Para quien opera el panel</b><p>De un vistazo: si está generando, si algo está fuera de rango y si hay que limpiarlo o revisarlo.</p></div>
+      <div class="card"><b>Para quien analiza los datos</b><p>Históricos por sesión con unidades físicas, comparación entre sesiones y exportación a CSV.</p></div>
+      <div class="card"><b>Para quien evalúa</b><p>Cada indicador tiene un botón <b style="display:inline">i</b> que explica qué mide, por qué está, cómo se calcula y su umbral.</p></div>
+    </div>
+    <p class="note">Lo que se presenta es una maqueta funcional con datos simulados que tienen exactamente el mismo formato que la trama del ESP32 (segundos, V, mA, mW, °C, % de luz). La siguiente etapa es el backend que conecta este dashboard con el hardware real.</p>
+  </div></section>
+
+  <section id="abrir"><div class="wrap">
+    <h2><small>2 · Cómo verlo</small>Abrir el dashboard interactivo</h2>
+    <p class="intro">El dashboard completo viene dentro de este mismo archivo. No hace falta instalar nada: funciona en Chrome, Edge o Firefox. También se entrega por separado como <code>SIMON-dashboard-interactivo.html</code>, que se abre con doble clic.</p>
+    <div class="cta"><button class="btn btn--accent" data-demo><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5z"/></svg>Abrir el dashboard interactivo</button></div>
+    <ol class="steps">
+      <li><b>En vivo:</b> los datos se actualizan cada segundo. Pasa el cursor sobre cualquier gráfica para ver el valor exacto.</li>
+      <li><b>Botón i:</b> junto al nombre de cada indicador; abre su ficha de justificación.</li>
+      <li><b>Probar la alerta de mantenimiento:</b> en <b>Configuración → Conexión</b> elige el escenario <b>Panel sucio</b> y vuelve a En vivo. En 3 a 4 minutos aparece «Revisar o limpiar el panel» (bajando la ventana de <b>Alertas → Mantenimiento</b> a 1 min, en unos 80 s).</li>
+      <li><b>Históricos:</b> en <b>Análisis</b> elige la sesión <b>v3</b>, que se registró con el panel sucio, y la variable <b>Eficiencia</b>.</li>
+      <li><b>Sesiones:</b> compara dos sesiones o descarga cualquiera en CSV.</li>
+    </ol>
+  </div></section>
+
+  <section id="recorrido"><div class="wrap">
+    <h2><small>3 · Recorrido</small>Las vistas del dashboard</h2>
+    <p class="intro">Capturas tomadas del dashboard interactivo. Haz clic en cualquier imagen para verla en tamaño completo.</p>
+
+    <figure>
+      <button class="shot shot--cap" data-full="01-en-vivo" aria-label="Ampliar captura"><img src="{{img:01-en-vivo}}" alt="Vista En vivo"></button>
+      <figcaption>
+        <div><h3><span class="n">Fig. 1</span>En vivo</h3><p>La vista principal. La potencia es la métrica protagonista porque es el resultado final del sistema; todo lo demás explica por qué sube o baja.</p>
+          <div class="chips"><span class="chip">V, I, P, T, irradiancia y eficiencia</span><span class="chip">Eficiencia real vs nominal</span></div></div>
+        <ul>
+          <li>Seis indicadores con su tendencia del último minuto: potencia (mW), voltaje (V), corriente (mA), temperatura (°C), irradiancia (W/m²) y eficiencia (%).</li>
+          <li>Potencia medida contra la teórica de la ficha técnica, corregida por temperatura.</li>
+          <li>Eficiencia real contra la nominal, con la línea del umbral de mantenimiento.</li>
+          <li>Temperatura con su umbral de alerta y estado del sistema con ícono y texto.</li>
+        </ul>
+      </figcaption>
+    </figure>
+
+    <figure>
+      <button class="shot shot--cap" data-full="04-alerta-mantenimiento" aria-label="Ampliar captura"><img src="{{img:04-alerta-mantenimiento}}" alt="Alerta de mantenimiento activa"></button>
+      <figcaption>
+        <div><h3><span class="n">Fig. 2</span>Alerta de mantenimiento</h3><p>Escenario «Panel sucio». La eficiencia cae dentro de la franja amarilla, bajo el umbral, y el sistema pide revisar o limpiar el panel.</p>
+          <div class="chips"><span class="chip">Umbral de alerta de mantenimiento</span></div></div>
+        <ul>
+          <li>Umbral: 75 % de la eficiencia nominal (9,1 % × 0,75 = 6,8 %).</li>
+          <li>Se evalúa con la mediana de los últimos minutos y solo con irradiancia ≥ 300 W/m², para que una nube o el atardecer no disparen falsas alarmas.</li>
+          <li>El anillo de rendimiento queda bajo su marca y la potencia medida se separa de la teórica.</li>
+        </ul>
+      </figcaption>
+    </figure>
+
+    <figure>
+      <button class="shot" data-full="03-justificacion" aria-label="Ampliar captura"><img src="{{img:03-justificacion}}" alt="Ficha de justificación del indicador de eficiencia"></button>
+      <figcaption>
+        <div><h3><span class="n">Fig. 3</span>Justificación de indicadores</h3><p>Cada indicador tiene un botón <b>i</b> con su ficha: qué mide, por qué está en el dashboard, cómo se calcula y cuál es su umbral.</p>
+          <div class="chips"><span class="chip">Indicadores justificados</span></div></div>
+        <ul>
+          <li>Los valores de la ficha salen de la configuración: si cambia el área del panel, cambia la fórmula mostrada.</li>
+          <li>Pensado para quien ve el dashboard por primera vez, sin que nadie se lo explique.</li>
+        </ul>
+      </figcaption>
+    </figure>
+
+    <figure>
+      <button class="shot shot--cap" data-full="05-analisis" aria-label="Ampliar captura"><img src="{{img:05-analisis}}" alt="Vista Análisis de la sesión v3"></button>
+      <figcaption>
+        <div><h3><span class="n">Fig. 4</span>Análisis de una sesión</h3><p>Sesión v3, registrada con el panel sucio. El resumen ya avisa que hay que revisar el panel y la serie de eficiencia muestra cuánto tiempo estuvo bajo el umbral.</p>
+          <div class="chips"><span class="chip">Históricos</span><span class="chip">Unidades correctas</span></div></div>
+        <ul>
+          <li>Resumen: energía, potencia media, eficiencia, rendimiento contra la nominal, temperatura máxima e irradiancia media.</li>
+          <li>Serie temporal de cualquier variable con su media y, cuando aplica, su umbral.</li>
+          <li>Potencia contra irradiancia (ajuste cuadrático) y efecto de la temperatura descontando la irradiancia.</li>
+          <li>Tabla segundo a segundo y exportación a CSV con el formato del ESP32.</li>
+        </ul>
+      </figcaption>
+    </figure>
+
+    <figure>
+      <button class="shot shot--cap" data-full="06-prediccion" aria-label="Ampliar captura"><img src="{{img:06-prediccion}}" alt="Vista Predicción ML"></button>
+      <figcaption>
+        <div><h3><span class="n">Fig. 5</span>Predicción de eficiencia</h3><p>La vista que recibirá el modelo de machine learning del equipo. Por ahora usa un modelo de demostración entrenado en el navegador, y la vista lo dice explícitamente.</p>
+          <div class="chips"><span class="chip">Contraste con cálculo teórico</span></div></div>
+        <ul>
+          <li>Eficiencia real contra predicha, métricas del modelo (R², MAE, RMSE) e importancia de cada variable.</li>
+          <li>Simulador de escenarios: cambia la irradiancia y la temperatura y compara lo que predice el modelo con el cálculo teórico.</li>
+        </ul>
+      </figcaption>
+    </figure>
+
+    <figure>
+      <button class="shot shot--cap" data-full="07-sesiones" aria-label="Ampliar captura"><img src="{{img:07-sesiones}}" alt="Vista Sesiones"></button>
+      <figcaption>
+        <div><h3><span class="n">Fig. 6</span>Historial de sesiones</h3><p>Cada sesión es un archivo CSV. Se pueden filtrar por fecha en el calendario, comparar dos de ellas y descargarlas.</p>
+          <div class="chips"><span class="chip">Históricos</span></div></div>
+        <ul>
+          <li>Las sesiones que cruzaron el umbral de mantenimiento aparecen marcadas con «Revisar panel».</li>
+          <li>La comparación alinea las sesiones por tiempo transcurrido y resume energía, eficiencia y temperatura.</li>
+        </ul>
+      </figcaption>
+    </figure>
+
+    <figure>
+      <button class="shot shot--cap" data-full="08-configuracion" aria-label="Ampliar captura"><img src="{{img:08-configuracion}}" alt="Vista Configuración"></button>
+      <figcaption>
+        <div><h3><span class="n">Fig. 7</span>Configuración</h3><p>Todos los parámetros de los que dependen los cálculos se editan aquí, sin tocar código.</p>
+          <div class="chips"><span class="chip">Diseño para el usuario final</span></div></div>
+        <ul>
+          <li>Ficha técnica del panel, calibración del LDR y del LM35, umbrales de alerta y de mantenimiento.</li>
+          <li>Escenarios del simulador para probar el sistema: normal, nublado, panel sucio y calor extremo.</li>
+          <li>Los cambios se guardan de forma explícita y el resto del dashboard se actualiza al instante.</li>
+        </ul>
+      </figcaption>
+    </figure>
+
+    <figure>
+      <button class="shot" data-full="02-en-vivo-oscuro" aria-label="Ampliar captura"><img src="{{img:02-en-vivo-oscuro}}" alt="Vista En vivo en modo oscuro"></button>
+      <figcaption>
+        <div><h3><span class="n">Fig. 8</span>Modo oscuro</h3><p>Pensado para el proyector y para usarlo de noche. Los colores de cada variable se ajustan para mantener el contraste.</p></div>
+        <ul>
+          <li>Un color fijo por variable en todas las vistas, validado para personas con daltonismo.</li>
+          <li>Las alertas nunca dependen solo del color: siempre llevan ícono y texto.</li>
+        </ul>
+      </figcaption>
+    </figure>
+
+    <figure>
+      <button class="shot" data-full="09-fondo" aria-label="Ampliar captura"><img src="{{img:09-fondo}}" alt="Selector de fondo del dashboard"></button>
+      <figcaption>
+        <div><h3><span class="n">Fig. 9</span>Fondo personalizable</h3><p>El dashboard puede usar una foto, fondos abstractos o una imagen propia, con control de desenfoque y oscurecimiento para que el texto siempre se lea.</p></div>
+        <ul><li>En esta captura además se ve una alerta de temperatura alta en el estado del sistema.</li></ul>
+      </figcaption>
+    </figure>
+
+    <figure>
+      <div class="pair">
+        <button class="shot" data-full="10-movil-en-vivo" aria-label="Ampliar captura"><img src="{{img:10-movil-en-vivo}}" alt="Vista En vivo en un celular"></button>
+        <button class="shot" data-full="11-movil-sesiones" aria-label="Ampliar captura"><img src="{{img:11-movil-sesiones}}" alt="Vista Sesiones en un celular, modo oscuro"></button>
+      </div>
+      <figcaption>
+        <div><h3><span class="n">Fig. 10</span>En el celular</h3><p>Todas las vistas se adaptan a pantallas pequeñas; la barra de navegación pasa a la parte inferior.</p></div>
+        <ul><li>Revisado en 390 px de ancho, sin desbordes horizontales.</li></ul>
+      </figcaption>
+    </figure>
+  </div></section>
+
+  <section id="rubrica"><div class="wrap">
+    <h2><small>4 · Rúbrica</small>Criterio «Diseño del dashboard»</h2>
+    <p class="intro">Cada requisito de la rúbrica y dónde se puede comprobar.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Requisito</th><th>Nivel</th><th>Dónde se cumple</th><th>Estado</th></tr></thead>
+      <tbody>
+        <tr><td>Muestra V, I, potencia, temperatura, irradiancia y eficiencia</td><td><span class="lvl">Logrado</span></td><td>Indicadores de En vivo, resumen y tabla de Análisis (Fig. 1 y 4)</td><td>{{ok}}</td></tr>
+        <tr><td>Organización clara y unidades correctas</td><td><span class="lvl">Logrado</span></td><td>Una métrica protagonista, un color por variable, unidades SI: V, mA, mW, °C, W/m², % (Fig. 1)</td><td>{{ok}}</td></tr>
+        <tr><td>Eficiencia real vs nominal</td><td><span class="lvl">Sobresaliente</span></td><td>Indicador de eficiencia, gráfica comparativa y anillo de rendimiento (Fig. 1 y 2)</td><td>{{ok}}</td></tr>
+        <tr><td>Históricos</td><td><span class="lvl">Sobresaliente</span></td><td>Vistas Análisis y Sesiones (Fig. 4 y 6)</td><td>{{ok}}</td></tr>
+        <tr><td>Visualización del umbral de alerta de mantenimiento</td><td><span class="lvl">Sobresaliente</span></td><td>Línea y franja en la gráfica de eficiencia, marca en el anillo, estado del sistema (Fig. 2)</td><td>{{ok}}</td></tr>
+        <tr><td>El diseño considera al usuario final</td><td><span class="lvl">Sobresaliente</span></td><td>Tres tipos de usuario (sección 1), alertas con ícono y texto, modo oscuro, celular, configuración sin código (Fig. 7, 8 y 10)</td><td>{{ok}}</td></tr>
+        <tr><td>Se justifican los indicadores elegidos</td><td><span class="lvl">Sobresaliente</span></td><td>Botón i en cada indicador (Fig. 3) y tabla de la sección 5</td><td>{{ok}}</td></tr>
+      </tbody>
+    </table></div>
+  </div></section>
+
+  <section id="indicadores"><div class="wrap">
+    <h2><small>5 · Indicadores</small>Qué mide cada uno y por qué</h2>
+    <p class="intro">Elegimos indicadores que respondan una pregunta concreta del usuario. Básicamente, si un número no ayuda a decidir algo, no está en la pantalla principal.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Indicador</th><th>Unidad</th><th>Cómo se obtiene</th><th>Por qué está</th></tr></thead>
+      <tbody>
+        <tr><td>Potencia</td><td>mW</td><td>INA219 (V · I)</td><td>Es el resultado final del sistema</td></tr>
+        <tr><td>Voltaje</td><td>V</td><td>Bus del INA219</td><td>Detecta conexiones flojas y el efecto del calor</td></tr>
+        <tr><td>Corriente</td><td>mA</td><td>Shunt del INA219</td><td>Es casi proporcional a la luz: valida que el LDR y el panel vean lo mismo</td></tr>
+        <tr><td>Temperatura</td><td>°C</td><td>LM35 (10 mV/°C, ADC de 12 bits del ESP32)</td><td>El calor reduce la eficiencia, cerca de 0,4 % por °C sobre 25 °C</td></tr>
+        <tr><td>Irradiancia</td><td>W/m²</td><td>% del LDR × factor de calibración</td><td>Es la entrada del sistema; sin ella no hay eficiencia</td></tr>
+        <tr><td>Eficiencia real</td><td>%</td><td><span class="formula">η = P / (G · A)</span></td><td>No depende de cuánta luz haya, por eso revela suciedad o degradación</td></tr>
+        <tr><td>Eficiencia nominal</td><td>%</td><td><span class="formula">η = P_nom / (1000 W/m² · A)</span></td><td>Referencia del fabricante en condiciones estándar</td></tr>
+        <tr><td>Potencia teórica</td><td>mW</td><td><span class="formula">P_nom · G/1000 · [1 + γ(T − 25)]</span></td><td>Contrasta la medición con el cálculo de la ficha técnica</td></tr>
+        <tr><td>Energía</td><td>Wh</td><td><span class="formula">Σ P · Δt</span></td><td>Resume una sesión para compararla con otras</td></tr>
+      </tbody>
+    </table></div>
+  </div></section>
+
+  <section id="limitaciones"><div class="wrap">
+    <h2><small>6 · Estado actual</small>Limitaciones y siguientes pasos</h2>
+    <p class="intro">Lo que todavía depende de datos o etapas que no hemos terminado, para que los números se lean con el contexto correcto.</p>
+    <div class="limits">
+      <div class="card"><b>{{warn}}Datos del panel de ejemplo</b><p>La potencia nominal (1 W), el área (110 cm²) y el Voc (6 V) son provisionales hasta tener la ficha técnica del panel real. El dashboard los marca como «Datos de ejemplo».</p></div>
+      <div class="card"><b>{{warn}}LDR sin calibrar</b><p>La irradiancia se estima con un factor de 10 W/m² por cada 1 % de luz. Lo calibraremos con una lectura de referencia en un día despejado (≈ 1000 W/m²).</p></div>
+      <div class="card"><b>{{warn}}Datos simulados</b><p>El simulador reproduce la trama del ESP32 y la física del panel. El siguiente paso es el backend que recibe los datos reales por TCP y los envía al dashboard.</p></div>
+      <div class="card"><b>{{warn}}Modelo de demostración</b><p>La vista de predicción usa una regresión polinómica provisional. Se reemplazará por el modelo que entrene el equipo con los CSV registrados.</p></div>
+    </div>
+  </div></section>
+</main>
+
+<footer><div class="wrap">
+  <span>SIMON · Sistema de Monitoreo Neuronal · Equipo SIMON</span>
+  <span>Código: <a href="https://github.com/dueber-dev/SIMON-Sistema-de-Monitoreo-Neuronal">github.com/dueber-dev/SIMON-Sistema-de-Monitoreo-Neuronal</a></span>
+</div></footer>
+
+<dialog id="lb" aria-label="Captura ampliada"><button class="lb-close" data-close>Cerrar</button><img alt=""></dialog>
+<dialog id="demo" aria-label="Dashboard interactivo">
+  <div class="dlg-bar"><span>Dashboard interactivo · datos simulados</span><div><button data-newtab>Abrir en pestaña nueva</button><button data-close>Cerrar</button></div></div>
+  <iframe title="Dashboard SIMON"></iframe>
+</dialog>
+
+<!-- Dashboard interactivo empaquetado -->
+<script type="text/plain" id="dash">{{dashboard_b64}}</script>
+<script>
+(() => {
+  const lb = document.getElementById('lb'), lbImg = lb.querySelector('img');
+  document.querySelectorAll('[data-full]').forEach(b => b.addEventListener('click', () => {
+    const img = b.querySelector('img'); lbImg.src = img.src; lbImg.alt = img.alt;
+    lb.showModal(); lb.scrollTop = 0;
+  }));
+  lb.addEventListener('click', e => { if (e.target === lb || e.target.matches('[data-close]')) lb.close(); });
+
+  // El dashboard viaja dentro del documento en base64 y se abre como Blob
+  let url = null;
+  const dashUrl = () => {
+    if (!url) {
+      const bin = atob(document.getElementById('dash').textContent.trim());
+      const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
+      url = URL.createObjectURL(new Blob([bytes], { type: 'text/html;charset=utf-8' }));
+    }
+    return url;
+  };
+  const demo = document.getElementById('demo'), frame = demo.querySelector('iframe');
+  document.querySelectorAll('[data-demo]').forEach(b => b.addEventListener('click', () => {
+    if (!frame.src) frame.src = dashUrl();
+    demo.showModal();
+  }));
+  demo.querySelector('[data-newtab]').addEventListener('click', () => window.open(dashUrl(), '_blank'));
+  demo.querySelector('[data-close]').addEventListener('click', () => demo.close());
+})();
+</script>
+</body>
+</html>

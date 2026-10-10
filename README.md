@@ -34,6 +34,24 @@ Cada indicador tiene un botón **i** que explica qué mide, por qué está en el
 
 Estructura: `design/index.html` (esqueleto y router), `design/css/`, `design/js/` (`sim.js` simulador y sesiones, `physics.js` irradiancia, eficiencias, potencia teórica y mantenimiento, `charts.js` gráficas SVG, `ml.js` modelo demo, `info.js` fichas de indicadores, `store.js` configuración) y `design/js/views/` (una vista por archivo).
 
+## Entrega
+
+La carpeta `entrega/` tiene lo necesario para revisar el proyecto sin instalar nada:
+
+| Archivo | Qué es |
+|---|---|
+| `SIMON-entrega-dashboard.html` | Documento con el recorrido por todas las vistas, la relación con la rúbrica, los indicadores y las limitaciones. Incluye el dashboard interactivo (botón «Abrir el dashboard interactivo»). |
+| `SIMON-dashboard-interactivo.html` | El dashboard completo en un solo archivo; se abre con doble clic. |
+| `capturas/` | Las capturas en WebP, para usarlas en la presentación. |
+
+Para regenerarlos después de cambiar el dashboard (requiere Node.js):
+
+```bash
+python tools/build_entrega.py
+```
+
+Las capturas se vuelven a tomar con `tools/capturas.mjs` (instrucciones al inicio del archivo).
+
 ## Usar el prototipo original
 
 1. Conecta la laptop a la red Wi‑Fi `ESP32_Panel_Solar`.
