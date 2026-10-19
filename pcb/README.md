@@ -1,18 +1,21 @@
 # PCB de SIMON (una cara, para planchado)
 
 Placa de 88 × 50 mm, todo THT, cobre solo en la capa **Bottom**. Las piezas van por arriba.
+Al estilo de las placas de la U: relleno de cobre conectado a GND (aislamiento de 0.8 mm) y las
+etiquetas de las piezas en cobre, cada una en su recuadro.
 En Fusion está como `SIMON` en *Default Project*.
 
 | Archivo | Qué es |
 |---|---|
 | `generar_brd.py` | Fuente del diseño: huellas, posiciones y pistas. Genera `SIMON.brd` |
 | `verificar.py` | Chequeo propio de conectividad y separaciones |
+| `geometria.py` | Relleno de GND y ubicación automática de las etiquetas en cobre |
 | `render.py` | Genera los PDF 1:1 y la vista previa |
 | `SIMON.brd` | Placa para EAGLE/Fusion (se sube a Fusion tal cual) |
 | `SIMON_cobre_1a1.pdf` | Lo que se imprime para planchar |
 | `SIMON_montaje.pdf` | Guía de qué va en cada lugar |
 
-Para cambiar algo: editar `generar_brd.py` y correr `python generar_brd.py && python verificar.py && python render.py`.
+Requiere `pip install shapely matplotlib`. Para cambiar algo: editar `generar_brd.py` y correr `python generar_brd.py && python verificar.py && python render.py`.
 
 ## Conexiones (de la hoja "Conexiones SIMON PCB")
 

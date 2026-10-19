@@ -5,8 +5,11 @@ Unidades en mm. Origen en la esquina inferior izquierda de la placa.
 
 Uso:  python generar_brd.py   ->  escribe SIMON.brd junto a este archivo
 """
+import re
 from pathlib import Path
 from xml.sax.saxutils import escape
+
+import geometria as geo
 
 ANCHO, ALTO = 88.0, 50.0
 DRILL_HDR = 1.0      # pines de headers (patas ~0.64 mm cuadradas)
@@ -199,6 +202,60 @@ REGLAS = {
 }
 
 
+# --------------------------------------------------------------- texto en cobre
+# Como en las placas de la U: etiquetas de las piezas en cobre, cada una dentro
+# de un recuadro sin relleno. Se escriben espejadas (MR) para leerse desde el
+# lado del cobre. (texto, x_ancla, y_ancla, tamaño, rotación)
+TITULO = ("SIMON", 34.7, 23.0, 5.0, "MR90")
+ETIQUETAS = [
+    # Polaridades primero, para que queden pegadas a su pad
+    ("+", 63.6, 5.0, 1.8, "MR0", 2.5),   # panel +, a la derecha de su pad
+    ("-", 51.4, 4.2, 1.8, "MR0", 2.5),   # panel -, a la izquierda de su pad
+    ("U1", 34.7, 40.0, 2.0, "MR0"),
+    ("U2", 72.0, 36.0, 2.0, "MR0"),
+    ("U3", 9.0, 20.0, 2.0, "MR0"),
+    ("J1", 57.46, 11.0, 2.0, "MR0"),
+    ("R1", 68.0, 16.38, 2.0, "MR0"),
+    ("R2", 74.0, 16.38, 2.0, "MR0"),
+    ("R3", 80.0, 16.38, 2.0, "MR0"),
+    ("R4", 16.0, 24.0, 2.0, "MR0"),
+    ("LDR", 10.5, 40.0, 2.0, "MR0"),
+    ("C1", 14.73, 10.5, 2.0, "MR0"),
+]
+
+
+def pads_absolutos():
+    """[(elemento, pad, x, y, diámetro, forma, vertical)] en coordenadas de placa."""
+    out = []
+    for nom, pkg, _, ex, ey in ELEMENTOS:
+        for m in re.finditer(r'<pad name="([^"]+)" x="([^"]+)" y="([^"]+)" drill="[^"]+" '
+                             r'diameter="([^"]+)" shape="([^"]+)" rot="([^"]+)"', PAQUETES[pkg]):
+            n, x, y, d, sh, rot = m.groups()
+            out.append((nom, n, float(x) + ex, float(y) + ey, float(d), sh, rot == "R90"))
+    return out
+
+
+def cobre_por_senal():
+    """{señal: [formas shapely]} con pads y pistas; pads sin señal van en 'NC'."""
+    sig_de = {(el, pd): s for s, (_, lst, _) in SENALES.items() for el, pd in lst}
+    out = {}
+    for el, n, x, y, d, sh, vert in pads_absolutos():
+        out.setdefault(sig_de.get((el, n), "NC"), []).append(geo.forma_pad(x, y, d, sh, vert))
+    for s, (w, _, pistas) in SENALES.items():
+        for poli in pistas:
+            for (x1, y1), (x2, y2) in zip(poli, poli[1:]):
+                out[s].append(geo.forma_pista(x1, y1, x2, y2, w))
+    return out
+
+
+def textos_en_cobre():
+    """Título fijo + etiquetas ubicadas automáticamente lejos del cobre."""
+    cobre = [g for lst in cobre_por_senal().values() for g in lst]
+    s, x, y, size, rot = TITULO
+    titulo = (s, x, y, size, rot, geo.caja_texto(s, x, y, size, rot))
+    return [titulo] + geo.colocar(ETIQUETAS, cobre, ANCHO, ALTO, ocupadas=[titulo[5]])
+
+
 def construir():
     o = ['<?xml version="1.0" encoding="utf-8"?>',
          '<!DOCTYPE eagle SYSTEM "eagle.dtd">',
@@ -211,10 +268,12 @@ def construir():
     o.append('</layers><board><plain>')
     o.append(rect_borde := "".join([wire(0, 0, ANCHO, 0, 0, 20), wire(ANCHO, 0, ANCHO, ALTO, 0, 20),
                                     wire(ANCHO, ALTO, 0, ALTO, 0, 20), wire(0, ALTO, 0, 0, 0, 20)]))
-    # Texto en cobre (espejado para leerse desde abajo) y títulos en serigrafía
-    o.append(text("SIMON v1", 31.0, 25.0, 3.5, 16, "center", "MR90", 25))
-    o.append(text("Monitor solar", 38.5, 25.0, 2.4, 16, "center", "MR90", 34))
-    o.append(text("SIMON v1 - monitor solar", 70, 48.6, 1.4, 21))
+    # Texto en cobre con su recuadro en bRestrict (42) para que el relleno no entre
+    for s, x, y, size, rot, caja in textos_en_cobre():
+        o.append(text(s, x, y, size, 16, "center", rot, 18))
+        x1, y1, x2, y2 = caja.bounds
+        o.append(f'<rectangle x1="{x1:.3f}" y1="{y1:.3f}" x2="{x2:.3f}" y2="{y2:.3f}" layer="42"/>')
+    o.append(text("SIMON", 70, 48.6, 1.4, 21))
     o.append('</plain><libraries><library name="simon"><packages>')
     for nombre, cuerpo in PAQUETES.items():
         o.append(f'<package name="{nombre}">{cuerpo}'
@@ -235,6 +294,14 @@ def construir():
         for poli in pistas:
             for (x1, y1), (x2, y2) in zip(poli, poli[1:]):
                 o.append(wire(x1, y1, x2, y2, w, 16))
+        if nombre == "GND":
+            # Relleno de cobre en toda la cara, como en las placas de la U
+            m = geo.MARGEN_BORDE
+            o.append(f'<polygon width="0.4" layer="16" isolate="{geo.AISLAMIENTO}" '
+                     f'thermals="no" orphans="no" rank="1">'
+                     f'<vertex x="{m}" y="{m}"/><vertex x="{ANCHO - m}" y="{m}"/>'
+                     f'<vertex x="{ANCHO - m}" y="{ALTO - m}"/><vertex x="{m}" y="{ALTO - m}"/>'
+                     '</polygon>')
         o.append('</signal>')
     o.append('</signals></board></drawing></eagle>')
     return "\n".join(o)
