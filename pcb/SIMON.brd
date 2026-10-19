@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE eagle SYSTEM "eagle.dtd">
+<eagle version="9.6.2"><drawing>
+<settings><setting alwaysvectorfont="yes"/><setting verticaltext="up"/></settings>
+<grid distance="1.27" unitdist="mm" unit="mm" style="lines" multiple="1" display="yes" altdistance="0.635" altunitdist="mm" altunit="mm"/>
+<layers>
+<layer number="1" name="Top" color="4" fill="1" visible="yes" active="yes"/>
+<layer number="16" name="Bottom" color="1" fill="1" visible="yes" active="yes"/>
+<layer number="17" name="Pads" color="2" fill="1" visible="yes" active="yes"/>
+<layer number="18" name="Vias" color="2" fill="1" visible="yes" active="yes"/>
+<layer number="19" name="Unrouted" color="6" fill="1" visible="yes" active="yes"/>
+<layer number="20" name="Dimension" color="15" fill="1" visible="yes" active="yes"/>
+<layer number="21" name="tPlace" color="7" fill="1" visible="yes" active="yes"/>
+<layer number="22" name="bPlace" color="7" fill="1" visible="yes" active="yes"/>
+<layer number="23" name="tOrigins" color="15" fill="1" visible="yes" active="yes"/>
+<layer number="24" name="bOrigins" color="15" fill="1" visible="yes" active="yes"/>
+<layer number="25" name="tNames" color="7" fill="1" visible="yes" active="yes"/>
+<layer number="26" name="bNames" color="7" fill="1" visible="yes" active="yes"/>
+<layer number="27" name="tValues" color="7" fill="1" visible="yes" active="yes"/>
+<layer number="28" name="bValues" color="7" fill="1" visible="yes" active="yes"/>
+<layer number="29" name="tStop" color="7" fill="1" visible="yes" active="yes"/>
+<layer number="30" name="bStop" color="7" fill="1" visible="yes" active="yes"/>
+<layer number="31" name="tCream" color="7" fill="1" visible="yes" active="yes"/>
+<layer number="32" name="bCream" color="7" fill="1" visible="yes" active="yes"/>
+<layer number="35" name="tGlue" color="7" fill="1" visible="yes" active="yes"/>
+<layer number="36" name="bGlue" color="7" fill="1" visible="yes" active="yes"/>
+<layer number="39" name="tKeepout" color="4" fill="1" visible="yes" active="yes"/>
+<layer number="40" name="bKeepout" color="1" fill="1" visible="yes" active="yes"/>
+<layer number="41" name="tRestrict" color="4" fill="1" visible="yes" active="yes"/>
+<layer number="42" name="bRestrict" color="1" fill="1" visible="yes" active="yes"/>
+<layer number="43" name="vRestrict" color="2" fill="1" visible="yes" active="yes"/>
+<layer number="44" name="Drills" color="7" fill="1" visible="yes" active="yes"/>
+<layer number="45" name="Holes" color="7" fill="1" visible="yes" active="yes"/>
+<layer number="46" name="Milling" color="3" fill="1" visible="yes" active="yes"/>
+<layer number="47" name="Measures" color="7" fill="1" visible="yes" active="yes"/>
+<layer number="48" name="Document" color="7" fill="1" visible="yes" active="yes"/>
+<layer number="49" name="Reference" color="7" fill="1" visible="yes" active="yes"/>
+<layer number="51" name="tDocu" color="7" fill="1" visible="yes" active="yes"/>
+<layer number="52" name="bDocu" color="7" fill="1" visible="yes" active="yes"/>
+</layers><board><plain>
+<wire x1="0.000" y1="0.000" x2="88.000" y2="0.000" width="0" layer="20"/><wire x1="88.000" y1="0.000" x2="88.000" y2="50.000" width="0" layer="20"/><wire x1="88.000" y1="50.000" x2="0.000" y2="50.000" width="0" layer="20"/><wire x1="0.000" y1="50.000" x2="0.000" y2="0.000" width="0" layer="20"/>
+<text x="31.000" y="25.000" size="3.5" layer="16" font="vector" ratio="25" rot="MR90" align="center">SIMON v1</text>
+<text x="38.500" y="25.000" size="2.4" layer="16" font="vector" ratio="34" rot="MR90" align="center">Monitor solar</text>
+<text x="70.000" y="48.600" size="1.4" layer="21" font="vector" ratio="12" rot="R0" align="center">SIMON v1 - monitor solar</text>
+</plain><libraries><library name="simon"><packages>
+<package name="ESP32_DEVKIT_30"><pad name="EN" x="-12.700" y="17.780" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D23" x="12.700" y="17.780" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="VP" x="-12.700" y="15.240" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D22" x="12.700" y="15.240" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="VN" x="-12.700" y="12.700" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="TX0" x="12.700" y="12.700" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D34" x="-12.700" y="10.160" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="RX0" x="12.700" y="10.160" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D35" x="-12.700" y="7.620" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D21" x="12.700" y="7.620" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D32" x="-12.700" y="5.080" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D19" x="12.700" y="5.080" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D33" x="-12.700" y="2.540" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D18" x="12.700" y="2.540" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D25" x="-12.700" y="0.000" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D5" x="12.700" y="0.000" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D26" x="-12.700" y="-2.540" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="TX2" x="12.700" y="-2.540" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D27" x="-12.700" y="-5.080" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="RX2" x="12.700" y="-5.080" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D14" x="-12.700" y="-7.620" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D4" x="12.700" y="-7.620" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D12" x="-12.700" y="-10.160" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D2" x="12.700" y="-10.160" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D13" x="-12.700" y="-12.700" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D15" x="12.700" y="-12.700" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="GND_L" x="-12.700" y="-15.240" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="GND_R" x="12.700" y="-15.240" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="VIN" x="-12.700" y="-17.780" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="3V3" x="12.700" y="-17.780" drill="1.0" diameter="1.8" shape="long" rot="R0"/><wire x1="-14.150" y1="-23.300" x2="14.150" y2="-23.300" width="0.2" layer="21"/><wire x1="14.150" y1="-23.300" x2="14.150" y2="26.200" width="0.2" layer="21"/><wire x1="14.150" y1="26.200" x2="-14.150" y2="26.200" width="0.2" layer="21"/><wire x1="-14.150" y1="26.200" x2="-14.150" y2="-23.300" width="0.2" layer="21"/><text x="0.000" y="4.000" size="1.6" layer="21" font="vector" ratio="12" rot="R0" align="center">ESP32 DevKit V1 (30)</text><text x="0.000" y="-21.500" size="1.6" layer="21" font="vector" ratio="12" rot="R0" align="center">USB</text><text x="0.000" y="23.500" size="1.4" layer="21" font="vector" ratio="12" rot="R0" align="center">ANTENA</text><text x="10.600" y="15.240" size="1.0" layer="21" font="vector" ratio="12" rot="R0" align="center-right">D22</text><text x="10.600" y="7.620" size="1.0" layer="21" font="vector" ratio="12" rot="R0" align="center-right">D21</text><text x="-10.600" y="5.080" size="1.0" layer="21" font="vector" ratio="12" rot="R0" align="center-left">D32</text><text x="-10.600" y="2.540" size="1.0" layer="21" font="vector" ratio="12" rot="R0" align="center-left">D33</text><text x="-10.600" y="-15.240" size="1.0" layer="21" font="vector" ratio="12" rot="R0" align="center-left">GND</text><text x="10.600" y="-15.240" size="1.0" layer="21" font="vector" ratio="12" rot="R0" align="center-right">GND</text><text x="-10.600" y="-17.780" size="1.0" layer="21" font="vector" ratio="12" rot="R0" align="center-left">VIN</text><text x="10.600" y="-17.780" size="1.0" layer="21" font="vector" ratio="12" rot="R0" align="center-right">3V3</text><text x="0" y="0" size="1.27" layer="25">&gt;NAME</text></package>
+<package name="INA219_HDR6"><pad name="VCC" x="0.000" y="6.350" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="GND" x="0.000" y="3.810" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="SCL" x="0.000" y="1.270" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="SDA" x="0.000" y="-1.270" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="VINN" x="0.000" y="-3.810" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="VINP" x="0.000" y="-6.350" drill="1.0" diameter="1.8" shape="long" rot="R0"/><wire x1="-2.400" y1="-10.150" x2="20.600" y2="-10.150" width="0.2" layer="21"/><wire x1="20.600" y1="-10.150" x2="20.600" y2="10.150" width="0.2" layer="21"/><wire x1="20.600" y1="10.150" x2="-2.400" y2="10.150" width="0.2" layer="21"/><wire x1="-2.400" y1="10.150" x2="-2.400" y2="-10.150" width="0.2" layer="21"/><text x="2.200" y="6.350" size="1.0" layer="21" font="vector" ratio="12" rot="R0" align="center-left">VCC</text><text x="2.200" y="3.810" size="1.0" layer="21" font="vector" ratio="12" rot="R0" align="center-left">GND</text><text x="2.200" y="1.270" size="1.0" layer="21" font="vector" ratio="12" rot="R0" align="center-left">SCL</text><text x="2.200" y="-1.270" size="1.0" layer="21" font="vector" ratio="12" rot="R0" align="center-left">SDA</text><text x="2.200" y="-3.810" size="1.0" layer="21" font="vector" ratio="12" rot="R0" align="center-left">VIN-</text><text x="2.200" y="-6.350" size="1.0" layer="21" font="vector" ratio="12" rot="R0" align="center-left">VIN+</text><text x="12.000" y="0.000" size="1.8" layer="21" font="vector" ratio="12" rot="R0" align="center">INA219</text><text x="0" y="0" size="1.27" layer="25">&gt;NAME</text></package>
+<package name="BORNERA_2_508"><pad name="N" x="-2.540" y="0.000" drill="1.3" diameter="2.8" shape="round" rot="R0"/><pad name="P" x="2.540" y="0.000" drill="1.3" diameter="2.8" shape="round" rot="R0"/><wire x1="-5.000" y1="-3.600" x2="5.000" y2="-3.600" width="0.2" layer="21"/><wire x1="5.000" y1="-3.600" x2="5.000" y2="4.000" width="0.2" layer="21"/><wire x1="5.000" y1="4.000" x2="-5.000" y2="4.000" width="0.2" layer="21"/><wire x1="-5.000" y1="4.000" x2="-5.000" y2="-3.600" width="0.2" layer="21"/><text x="-2.540" y="2.600" size="1.6" layer="21" font="vector" ratio="12" rot="R0" align="center">-</text><text x="2.540" y="2.600" size="1.6" layer="21" font="vector" ratio="12" rot="R0" align="center">+</text><text x="0.000" y="-2.600" size="1.0" layer="21" font="vector" ratio="12" rot="R0" align="center">PANEL</text><text x="0" y="0" size="1.27" layer="25">&gt;NAME</text></package>
+<package name="R_15_24"><pad name="1" x="0.000" y="7.620" drill="1.0" diameter="2.4" shape="round" rot="R0"/><pad name="2" x="0.000" y="-7.620" drill="1.0" diameter="2.4" shape="round" rot="R0"/><wire x1="-1.300" y1="-5.420" x2="1.300" y2="-5.420" width="0.2" layer="21"/><wire x1="1.300" y1="-5.420" x2="1.300" y2="5.420" width="0.2" layer="21"/><wire x1="1.300" y1="5.420" x2="-1.300" y2="5.420" width="0.2" layer="21"/><wire x1="-1.300" y1="5.420" x2="-1.300" y2="-5.420" width="0.2" layer="21"/><text x="0" y="0" size="1.27" layer="25">&gt;NAME</text></package>
+<package name="R_10_16"><pad name="1" x="0.000" y="5.080" drill="1.0" diameter="2.4" shape="round" rot="R0"/><pad name="2" x="0.000" y="-5.080" drill="1.0" diameter="2.4" shape="round" rot="R0"/><wire x1="-1.300" y1="-2.880" x2="1.300" y2="-2.880" width="0.2" layer="21"/><wire x1="1.300" y1="-2.880" x2="1.300" y2="2.880" width="0.2" layer="21"/><wire x1="1.300" y1="2.880" x2="-1.300" y2="2.880" width="0.2" layer="21"/><wire x1="-1.300" y1="2.880" x2="-1.300" y2="-2.880" width="0.2" layer="21"/><text x="0" y="0" size="1.27" layer="25">&gt;NAME</text></package>
+<package name="TO92_LM35"><pad name="1" x="0.000" y="2.540" drill="0.9" diameter="1.6" shape="long" rot="R0"/><pad name="2" x="0.000" y="0.000" drill="0.9" diameter="1.6" shape="long" rot="R0"/><pad name="3" x="0.000" y="-2.540" drill="0.9" diameter="1.6" shape="long" rot="R0"/><wire x1="-1.800" y1="-3.600" x2="-1.800" y2="3.600" width="0.2" layer="21"/><wire x1="-1.8" y1="3.6" x2="-1.8" y2="-3.6" width="0.2" layer="21" curve="-180"/><text x="-3.000" y="2.540" size="1.0" layer="21" font="vector" ratio="12" rot="R0" align="center">1</text><text x="0" y="0" size="1.27" layer="25">&gt;NAME</text></package>
+<package name="LDR_5_08"><pad name="1" x="-2.540" y="0.000" drill="0.9" diameter="2.2" shape="round" rot="R0"/><pad name="2" x="2.540" y="0.000" drill="0.9" diameter="2.2" shape="round" rot="R0"/><circle x="0" y="0" radius="2.6" width="0.2" layer="21"/><text x="0" y="0" size="1.27" layer="25">&gt;NAME</text></package>
+<package name="CPOL_2_54"><pad name="N" x="-1.270" y="0.000" drill="0.9" diameter="1.8" shape="long" rot="R90"/><pad name="P" x="1.270" y="0.000" drill="0.9" diameter="1.8" shape="long" rot="R90"/><circle x="0" y="0" radius="3.2" width="0.2" layer="21"/><text x="2.600" y="2.600" size="1.2" layer="21" font="vector" ratio="12" rot="R0" align="center">+</text><text x="0" y="0" size="1.27" layer="25">&gt;NAME</text></package>
+</packages></library></libraries><attributes/><variantdefs/><classes><class number="0" name="default" width="0" drill="0"/></classes>
+<designrules name="simon_planchado">
+<param name="layerSetup" value="(1*16)"/>
+<param name="mdWireWire" value="0.5mm"/>
+<param name="mdWirePad" value="0.5mm"/>
+<param name="mdWireVia" value="0.5mm"/>
+<param name="mdPadPad" value="0.5mm"/>
+<param name="mdPadVia" value="0.5mm"/>
+<param name="mdViaVia" value="0.5mm"/>
+<param name="mdCopperDimension" value="1mm"/>
+<param name="msWidth" value="0.8mm"/>
+<param name="msDrill" value="0.8mm"/>
+<param name="rvPadTop" value="0.25"/>
+<param name="rvPadInner" value="0.25"/>
+<param name="rvPadBottom" value="0.25"/>
+<param name="rlMinPadTop" value="0.4mm"/>
+<param name="rlMinPadBottom" value="0.4mm"/>
+<param name="rlMinPadInner" value="0.4mm"/>
+<param name="psElongationLong" value="55"/>
+</designrules><autorouter/><elements>
+<element name="U1" library="simon" package="ESP32_DEVKIT_30" value="ESP32" x="34.7" y="23.78"/>
+<element name="U2" library="simon" package="INA219_HDR6" value="INA219" x="60.0" y="37.75"/>
+<element name="U3" library="simon" package="TO92_LM35" value="LM35" x="9.0" y="26.32"/>
+<element name="J1" library="simon" package="BORNERA_2_508" value="PANEL" x="57.46" y="5.0"/>
+<element name="R1" library="simon" package="R_15_24" value="10" x="68.0" y="16.38"/>
+<element name="R2" library="simon" package="R_15_24" value="10" x="74.0" y="16.38"/>
+<element name="R3" library="simon" package="R_15_24" value="10" x="80.0" y="16.38"/>
+<element name="R4" library="simon" package="R_10_16" value="10k" x="16.0" y="25.92"/>
+<element name="LDR1" library="simon" package="LDR_5_08" value="LDR" x="10.54" y="36.0"/>
+<element name="C1" library="simon" package="CPOL_2_54" value="100uF" x="14.73" y="5.0"/>
+</elements><signals>
+<signal name="GND">
+<contactref element="U1" pad="GND_L"/>
+<contactref element="U1" pad="GND_R"/>
+<contactref element="U2" pad="GND"/>
+<contactref element="U3" pad="3"/>
+<contactref element="R4" pad="2"/>
+<contactref element="C1" pad="N"/>
+<contactref element="J1" pad="N"/>
+<contactref element="R3" pad="2"/>
+<wire x1="9.000" y1="23.780" x2="9.000" y2="8.540" width="1.5" layer="16"/>
+<wire x1="9.000" y1="8.540" x2="13.460" y2="8.540" width="1.5" layer="16"/>
+<wire x1="13.460" y1="8.540" x2="16.000" y2="8.540" width="1.5" layer="16"/>
+<wire x1="16.000" y1="8.540" x2="22.000" y2="8.540" width="1.5" layer="16"/>
+<wire x1="13.460" y1="5.000" x2="13.460" y2="8.540" width="1.5" layer="16"/>
+<wire x1="16.000" y1="20.840" x2="16.000" y2="8.540" width="1.5" layer="16"/>
+<wire x1="22.000" y1="8.540" x2="47.400" y2="8.540" width="1.5" layer="16"/>
+<wire x1="47.400" y1="8.540" x2="51.500" y2="8.540" width="1.5" layer="16"/>
+<wire x1="51.500" y1="8.540" x2="54.920" y2="5.000" width="1.5" layer="16"/>
+<wire x1="54.920" y1="5.000" x2="54.920" y2="1.900" width="1.5" layer="16"/>
+<wire x1="54.920" y1="1.900" x2="80.000" y2="1.900" width="1.5" layer="16"/>
+<wire x1="80.000" y1="1.900" x2="85.000" y2="1.900" width="1.5" layer="16"/>
+<wire x1="85.000" y1="1.900" x2="85.000" y2="41.560" width="1.5" layer="16"/>
+<wire x1="85.000" y1="41.560" x2="60.000" y2="41.560" width="1.5" layer="16"/>
+<wire x1="80.000" y1="8.760" x2="80.000" y2="1.900" width="1.5" layer="16"/>
+</signal>
+<signal name="3V3">
+<contactref element="U1" pad="3V3"/>
+<contactref element="U2" pad="VCC"/>
+<contactref element="U3" pad="1"/>
+<contactref element="LDR1" pad="1"/>
+<wire x1="47.400" y1="6.000" x2="47.400" y2="1.900" width="1.2" layer="16"/>
+<wire x1="47.400" y1="1.900" x2="2.500" y2="1.900" width="1.2" layer="16"/>
+<wire x1="2.500" y1="1.900" x2="2.500" y2="28.860" width="1.2" layer="16"/>
+<wire x1="2.500" y1="28.860" x2="2.500" y2="36.000" width="1.2" layer="16"/>
+<wire x1="2.500" y1="36.000" x2="2.500" y2="47.000" width="1.2" layer="16"/>
+<wire x1="2.500" y1="47.000" x2="57.500" y2="47.000" width="1.2" layer="16"/>
+<wire x1="57.500" y1="47.000" x2="60.000" y2="44.100" width="1.2" layer="16"/>
+<wire x1="2.500" y1="28.860" x2="9.000" y2="28.860" width="1.2" layer="16"/>
+<wire x1="2.500" y1="36.000" x2="8.000" y2="36.000" width="1.2" layer="16"/>
+</signal>
+<signal name="VIN">
+<contactref element="U1" pad="VIN"/>
+<contactref element="C1" pad="P"/>
+<wire x1="22.000" y1="6.000" x2="18.000" y2="6.000" width="1.5" layer="16"/>
+<wire x1="18.000" y1="6.000" x2="16.000" y2="5.000" width="1.5" layer="16"/>
+</signal>
+<signal name="SCL">
+<contactref element="U1" pad="D22"/>
+<contactref element="U2" pad="SCL"/>
+<wire x1="47.400" y1="39.020" x2="60.000" y2="39.020" width="1.0" layer="16"/>
+</signal>
+<signal name="SDA">
+<contactref element="U1" pad="D21"/>
+<contactref element="U2" pad="SDA"/>
+<wire x1="47.400" y1="31.400" x2="50.800" y2="31.400" width="1.0" layer="16"/>
+<wire x1="50.800" y1="31.400" x2="50.800" y2="36.480" width="1.0" layer="16"/>
+<wire x1="50.800" y1="36.480" x2="60.000" y2="36.480" width="1.0" layer="16"/>
+</signal>
+<signal name="TEMP">
+<contactref element="U1" pad="D33"/>
+<contactref element="U3" pad="2"/>
+<wire x1="22.000" y1="26.320" x2="9.000" y2="26.320" width="1.0" layer="16"/>
+</signal>
+<signal name="LUZ">
+<contactref element="U1" pad="D32"/>
+<contactref element="R4" pad="1"/>
+<contactref element="LDR1" pad="2"/>
+<wire x1="22.000" y1="28.860" x2="18.000" y2="28.860" width="1.0" layer="16"/>
+<wire x1="18.000" y1="28.860" x2="16.000" y2="31.000" width="1.0" layer="16"/>
+<wire x1="13.080" y1="36.000" x2="16.000" y2="33.000" width="1.0" layer="16"/>
+<wire x1="16.000" y1="33.000" x2="16.000" y2="31.000" width="1.0" layer="16"/>
+</signal>
+<signal name="VSOLAR">
+<contactref element="U2" pad="VINP"/>
+<contactref element="J1" pad="P"/>
+<wire x1="60.000" y1="31.400" x2="60.000" y2="5.000" width="1.5" layer="16"/>
+</signal>
+<signal name="VCARGA">
+<contactref element="U2" pad="VINN"/>
+<contactref element="R1" pad="1"/>
+<wire x1="60.000" y1="33.940" x2="64.000" y2="33.940" width="1.5" layer="16"/>
+<wire x1="64.000" y1="33.940" x2="64.000" y2="27.000" width="1.5" layer="16"/>
+<wire x1="64.000" y1="27.000" x2="68.000" y2="24.000" width="1.5" layer="16"/>
+</signal>
+<signal name="N_R1R2">
+<contactref element="R1" pad="2"/>
+<contactref element="R2" pad="2"/>
+<wire x1="68.000" y1="8.760" x2="74.000" y2="8.760" width="1.5" layer="16"/>
+</signal>
+<signal name="N_R2R3">
+<contactref element="R2" pad="1"/>
+<contactref element="R3" pad="1"/>
+<wire x1="74.000" y1="24.000" x2="80.000" y2="24.000" width="1.5" layer="16"/>
+</signal>
+</signals></board></drawing></eagle>
