@@ -39,32 +39,32 @@
 <layer number="52" name="bDocu" color="7" fill="1" visible="yes" active="yes"/>
 </layers><board><plain>
 <wire x1="0.000" y1="0.000" x2="88.000" y2="0.000" width="0" layer="20"/><wire x1="88.000" y1="0.000" x2="88.000" y2="50.000" width="0" layer="20"/><wire x1="88.000" y1="50.000" x2="0.000" y2="50.000" width="0" layer="20"/><wire x1="0.000" y1="50.000" x2="0.000" y2="0.000" width="0" layer="20"/>
-<text x="34.700" y="23.000" size="5.0" layer="16" font="vector" ratio="18" rot="MR90" align="center">SIMON</text>
-<rectangle x1="31.500" y1="9.842" x2="37.900" y2="36.158" layer="42"/>
-<text x="63.850" y="5.250" size="1.8" layer="16" font="vector" ratio="18" rot="MR0" align="center">+</text>
-<rectangle x1="62.295" y1="3.650" x2="65.405" y2="6.850" layer="42"/>
-<text x="51.150" y="3.450" size="1.8" layer="16" font="vector" ratio="18" rot="MR0" align="center">-</text>
-<rectangle x1="49.595" y1="1.850" x2="52.705" y2="5.050" layer="42"/>
-<text x="34.700" y="40.000" size="2.0" layer="16" font="vector" ratio="18" rot="MR0" align="center">U1</text>
-<rectangle x1="32.100" y1="38.300" x2="37.300" y2="41.700" layer="42"/>
-<text x="72.000" y="36.000" size="2.0" layer="16" font="vector" ratio="18" rot="MR0" align="center">U2</text>
-<rectangle x1="69.400" y1="34.300" x2="74.600" y2="37.700" layer="42"/>
-<text x="5.750" y="20.000" size="2.0" layer="16" font="vector" ratio="18" rot="MR90" align="center">U3</text>
-<rectangle x1="4.050" y1="17.400" x2="7.450" y2="22.600" layer="42"/>
-<text x="55.710" y="11.000" size="2.0" layer="16" font="vector" ratio="18" rot="MR0" align="center">J1</text>
-<rectangle x1="53.110" y1="9.300" x2="58.310" y2="12.700" layer="42"/>
-<text x="68.000" y="16.380" size="2.0" layer="16" font="vector" ratio="18" rot="MR0" align="center">R1</text>
-<rectangle x1="65.400" y1="14.680" x2="70.600" y2="18.080" layer="42"/>
-<text x="74.000" y="16.380" size="2.0" layer="16" font="vector" ratio="18" rot="MR0" align="center">R2</text>
-<rectangle x1="71.400" y1="14.680" x2="76.600" y2="18.080" layer="42"/>
-<text x="80.000" y="16.380" size="2.0" layer="16" font="vector" ratio="18" rot="MR0" align="center">R3</text>
-<rectangle x1="77.400" y1="14.680" x2="82.600" y2="18.080" layer="42"/>
-<text x="10.500" y="32.250" size="2.0" layer="16" font="vector" ratio="18" rot="MR0" align="center">R4</text>
-<rectangle x1="7.900" y1="30.550" x2="13.100" y2="33.950" layer="42"/>
-<text x="10.500" y="40.000" size="2.0" layer="16" font="vector" ratio="18" rot="MR0" align="center">LDR</text>
-<rectangle x1="6.867" y1="38.300" x2="14.133" y2="41.700" layer="42"/>
-<text x="8.980" y="5.250" size="2.0" layer="16" font="vector" ratio="18" rot="MR0" align="center">C1</text>
-<rectangle x1="6.380" y1="3.550" x2="11.580" y2="6.950" layer="42"/>
+<text x="34.700" y="23.000" size="5.0" layer="16" font="vector" ratio="31" rot="MR90" align="center">SIMON</text>
+<polygon width="0" layer="16" pour="cutout"><vertex x="31.500" y="9.842"/><vertex x="37.900" y="9.842"/><vertex x="37.900" y="36.158"/><vertex x="31.500" y="36.158"/></polygon>
+<text x="63.850" y="5.250" size="2.0" layer="16" font="vector" ratio="31" rot="MR0" align="center">+</text>
+<polygon width="0" layer="16" pour="cutout"><vertex x="62.200" y="3.550"/><vertex x="65.500" y="3.550"/><vertex x="65.500" y="6.950"/><vertex x="62.200" y="6.950"/></polygon>
+<text x="50.900" y="3.200" size="2.0" layer="16" font="vector" ratio="31" rot="MR0" align="center">-</text>
+<polygon width="0" layer="16" pour="cutout"><vertex x="49.250" y="1.500"/><vertex x="52.550" y="1.500"/><vertex x="52.550" y="4.900"/><vertex x="49.250" y="4.900"/></polygon>
+<text x="34.700" y="40.000" size="2.0" layer="16" font="vector" ratio="31" rot="MR0" align="center">U1</text>
+<polygon width="0" layer="16" pour="cutout"><vertex x="32.100" y="38.300"/><vertex x="37.300" y="38.300"/><vertex x="37.300" y="41.700"/><vertex x="32.100" y="41.700"/></polygon>
+<text x="72.000" y="36.000" size="2.0" layer="16" font="vector" ratio="31" rot="MR0" align="center">U2</text>
+<polygon width="0" layer="16" pour="cutout"><vertex x="69.400" y="34.300"/><vertex x="74.600" y="34.300"/><vertex x="74.600" y="37.700"/><vertex x="69.400" y="37.700"/></polygon>
+<text x="5.750" y="20.000" size="2.0" layer="16" font="vector" ratio="31" rot="MR90" align="center">U3</text>
+<polygon width="0" layer="16" pour="cutout"><vertex x="4.050" y="17.400"/><vertex x="7.450" y="17.400"/><vertex x="7.450" y="22.600"/><vertex x="4.050" y="22.600"/></polygon>
+<text x="55.710" y="11.000" size="2.0" layer="16" font="vector" ratio="31" rot="MR0" align="center">J1</text>
+<polygon width="0" layer="16" pour="cutout"><vertex x="53.110" y="9.300"/><vertex x="58.310" y="9.300"/><vertex x="58.310" y="12.700"/><vertex x="53.110" y="12.700"/></polygon>
+<text x="68.000" y="16.380" size="2.0" layer="16" font="vector" ratio="31" rot="MR0" align="center">R1</text>
+<polygon width="0" layer="16" pour="cutout"><vertex x="65.400" y="14.680"/><vertex x="70.600" y="14.680"/><vertex x="70.600" y="18.080"/><vertex x="65.400" y="18.080"/></polygon>
+<text x="74.000" y="16.380" size="2.0" layer="16" font="vector" ratio="31" rot="MR0" align="center">R2</text>
+<polygon width="0" layer="16" pour="cutout"><vertex x="71.400" y="14.680"/><vertex x="76.600" y="14.680"/><vertex x="76.600" y="18.080"/><vertex x="71.400" y="18.080"/></polygon>
+<text x="80.000" y="16.380" size="2.0" layer="16" font="vector" ratio="31" rot="MR0" align="center">R3</text>
+<polygon width="0" layer="16" pour="cutout"><vertex x="77.400" y="14.680"/><vertex x="82.600" y="14.680"/><vertex x="82.600" y="18.080"/><vertex x="77.400" y="18.080"/></polygon>
+<text x="10.500" y="32.250" size="2.0" layer="16" font="vector" ratio="31" rot="MR0" align="center">R4</text>
+<polygon width="0" layer="16" pour="cutout"><vertex x="7.900" y="30.550"/><vertex x="13.100" y="30.550"/><vertex x="13.100" y="33.950"/><vertex x="7.900" y="33.950"/></polygon>
+<text x="10.500" y="40.000" size="2.0" layer="16" font="vector" ratio="31" rot="MR0" align="center">LDR</text>
+<polygon width="0" layer="16" pour="cutout"><vertex x="6.867" y="38.300"/><vertex x="14.133" y="38.300"/><vertex x="14.133" y="41.700"/><vertex x="6.867" y="41.700"/></polygon>
+<text x="8.980" y="5.250" size="2.0" layer="16" font="vector" ratio="31" rot="MR0" align="center">C1</text>
+<polygon width="0" layer="16" pour="cutout"><vertex x="6.380" y="3.550"/><vertex x="11.580" y="3.550"/><vertex x="11.580" y="6.950"/><vertex x="6.380" y="6.950"/></polygon>
 <text x="70.000" y="48.600" size="1.4" layer="21" font="vector" ratio="12" rot="R0" align="center">SIMON</text>
 </plain><libraries><library name="simon"><packages>
 <package name="ESP32_DEVKIT_30"><pad name="EN" x="-12.700" y="17.780" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D23" x="12.700" y="17.780" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="VP" x="-12.700" y="15.240" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D22" x="12.700" y="15.240" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="VN" x="-12.700" y="12.700" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="TX0" x="12.700" y="12.700" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D34" x="-12.700" y="10.160" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="RX0" x="12.700" y="10.160" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D35" x="-12.700" y="7.620" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D21" x="12.700" y="7.620" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D32" x="-12.700" y="5.080" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D19" x="12.700" y="5.080" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D33" x="-12.700" y="2.540" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D18" x="12.700" y="2.540" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D25" x="-12.700" y="0.000" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D5" x="12.700" y="0.000" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D26" x="-12.700" y="-2.540" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="TX2" x="12.700" y="-2.540" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D27" x="-12.700" y="-5.080" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="RX2" x="12.700" y="-5.080" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D14" x="-12.700" y="-7.620" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D4" x="12.700" y="-7.620" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D12" x="-12.700" y="-10.160" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D2" x="12.700" y="-10.160" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D13" x="-12.700" y="-12.700" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="D15" x="12.700" y="-12.700" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="GND_L" x="-12.700" y="-15.240" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="GND_R" x="12.700" y="-15.240" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="VIN" x="-12.700" y="-17.780" drill="1.0" diameter="1.8" shape="long" rot="R0"/><pad name="3V3" x="12.700" y="-17.780" drill="1.0" diameter="1.8" shape="long" rot="R0"/><wire x1="-14.150" y1="-23.300" x2="14.150" y2="-23.300" width="0.2" layer="21"/><wire x1="14.150" y1="-23.300" x2="14.150" y2="26.200" width="0.2" layer="21"/><wire x1="14.150" y1="26.200" x2="-14.150" y2="26.200" width="0.2" layer="21"/><wire x1="-14.150" y1="26.200" x2="-14.150" y2="-23.300" width="0.2" layer="21"/><text x="0.000" y="4.000" size="1.6" layer="21" font="vector" ratio="12" rot="R0" align="center">ESP32 DevKit V1 (30)</text><text x="0.000" y="-21.500" size="1.6" layer="21" font="vector" ratio="12" rot="R0" align="center">USB</text><text x="0.000" y="23.500" size="1.4" layer="21" font="vector" ratio="12" rot="R0" align="center">ANTENA</text><text x="10.600" y="15.240" size="1.0" layer="21" font="vector" ratio="12" rot="R0" align="center-right">D22</text><text x="10.600" y="7.620" size="1.0" layer="21" font="vector" ratio="12" rot="R0" align="center-right">D21</text><text x="-10.600" y="5.080" size="1.0" layer="21" font="vector" ratio="12" rot="R0" align="center-left">D32</text><text x="-10.600" y="2.540" size="1.0" layer="21" font="vector" ratio="12" rot="R0" align="center-left">D33</text><text x="-10.600" y="-15.240" size="1.0" layer="21" font="vector" ratio="12" rot="R0" align="center-left">GND</text><text x="10.600" y="-15.240" size="1.0" layer="21" font="vector" ratio="12" rot="R0" align="center-right">GND</text><text x="-10.600" y="-17.780" size="1.0" layer="21" font="vector" ratio="12" rot="R0" align="center-left">VIN</text><text x="10.600" y="-17.780" size="1.0" layer="21" font="vector" ratio="12" rot="R0" align="center-right">3V3</text><text x="0" y="0" size="1.27" layer="25">&gt;NAME</text></package>
@@ -85,7 +85,7 @@
 <param name="mdPadVia" value="0.5mm"/>
 <param name="mdViaVia" value="0.5mm"/>
 <param name="mdCopperDimension" value="1mm"/>
-<param name="msWidth" value="0.8mm"/>
+<param name="msWidth" value="0.6mm"/>
 <param name="msDrill" value="0.8mm"/>
 <param name="rvPadTop" value="0.25"/>
 <param name="rvPadInner" value="0.25"/>

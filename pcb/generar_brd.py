@@ -195,7 +195,7 @@ REGLAS = {
     "mdWireWire": "0.5mm", "mdWirePad": "0.5mm", "mdWireVia": "0.5mm",
     "mdPadPad": "0.5mm", "mdPadVia": "0.5mm", "mdViaVia": "0.5mm",
     "mdCopperDimension": "1mm",
-    "msWidth": "0.8mm", "msDrill": "0.8mm",
+    "msWidth": "0.6mm", "msDrill": "0.8mm",
     "rvPadTop": "0.25", "rvPadInner": "0.25", "rvPadBottom": "0.25",
     "rlMinPadTop": "0.4mm", "rlMinPadBottom": "0.4mm", "rlMinPadInner": "0.4mm",
     "psElongationLong": "55",
@@ -209,8 +209,8 @@ REGLAS = {
 TITULO = ("SIMON", 34.7, 23.0, 5.0, "MR90")
 ETIQUETAS = [
     # Polaridades primero, para que queden pegadas a su pad
-    ("+", 63.6, 5.0, 1.8, "MR0", 2.5),   # panel +, a la derecha de su pad
-    ("-", 51.4, 4.2, 1.8, "MR0", 2.5),   # panel -, a la izquierda de su pad
+    ("+", 63.6, 5.0, 2.0, "MR0", 2.5),   # panel +, a la derecha de su pad
+    ("-", 51.4, 4.2, 2.0, "MR0", 2.5),   # panel -, a la izquierda de su pad
     ("U1", 34.7, 40.0, 2.0, "MR0"),
     ("U2", 72.0, 36.0, 2.0, "MR0"),
     ("U3", 9.0, 20.0, 2.0, "MR0"),
@@ -268,11 +268,13 @@ def construir():
     o.append('</layers><board><plain>')
     o.append(rect_borde := "".join([wire(0, 0, ANCHO, 0, 0, 20), wire(ANCHO, 0, ANCHO, ALTO, 0, 20),
                                     wire(ANCHO, ALTO, 0, ALTO, 0, 20), wire(0, ALTO, 0, 0, 0, 20)]))
-    # Texto en cobre con su recuadro en bRestrict (42) para que el relleno no entre
+    # Texto en cobre; su recuadro es un recorte (cutout) del relleno en Bottom
     for s, x, y, size, rot, caja in textos_en_cobre():
-        o.append(text(s, x, y, size, 16, "center", rot, 18))
+        o.append(text(s, x, y, size, 16, "center", rot, 31))
         x1, y1, x2, y2 = caja.bounds
-        o.append(f'<rectangle x1="{x1:.3f}" y1="{y1:.3f}" x2="{x2:.3f}" y2="{y2:.3f}" layer="42"/>')
+        o.append(f'<polygon width="0" layer="16" pour="cutout">'
+                 f'<vertex x="{x1:.3f}" y="{y1:.3f}"/><vertex x="{x2:.3f}" y="{y1:.3f}"/>'
+                 f'<vertex x="{x2:.3f}" y="{y2:.3f}"/><vertex x="{x1:.3f}" y="{y2:.3f}"/></polygon>')
     o.append(text("SIMON", 70, 48.6, 1.4, 21))
     o.append('</plain><libraries><library name="simon"><packages>')
     for nombre, cuerpo in PAQUETES.items():

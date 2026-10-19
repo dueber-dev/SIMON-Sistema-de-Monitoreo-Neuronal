@@ -67,9 +67,11 @@ def cargar():
                           f(w.get("width")), s.get("name")))
     for t in board.find("plain").findall("text"):
         textos.append(t)
-    for r in board.find("plain").findall("rectangle"):
-        if r.get("layer") == "42":
-            cajas.append(tuple(f(r.get(k)) for k in ("x1", "y1", "x2", "y2")))
+    for pg in board.find("plain").findall("polygon"):
+        if pg.get("pour") == "cutout":
+            xs = [f(v.get("x")) for v in pg.findall("vertex")]
+            ys = [f(v.get("y")) for v in pg.findall("vertex")]
+            cajas.append((min(xs), min(ys), max(xs), max(ys)))
     borde = [w for w in board.find("plain").findall("wire") if w.get("layer") == "20"]
     xs = [f(w.get(k)) for w in borde for k in ("x1", "x2")]
     ys = [f(w.get(k)) for w in borde for k in ("y1", "y2")]
