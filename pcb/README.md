@@ -13,7 +13,8 @@ En Fusion está como `SIMON` en *Default Project*.
 | `render.py` | Genera los PDF 1:1 y la vista previa |
 | `SIMON.brd` | Placa para EAGLE/Fusion (se sube a Fusion tal cual) |
 | `SIMON_cobre_1a1.pdf` | Lo que se imprime para planchar |
-| `SIMON_montaje.pdf` | Guía de qué va en cada lugar |
+| `SIMON_montaje.pdf` | Guía de qué va en cada lugar, a escala 1:1 |
+| `SIMON_guia_montaje.png` | Guía ilustrada con cada componente y la lista de piezas (`python guia.py`) |
 
 Requiere `pip install shapely matplotlib`. Para cambiar algo: editar `generar_brd.py` y correr `python generar_brd.py && python verificar.py && python render.py`.
 
