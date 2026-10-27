@@ -11,6 +11,7 @@ Convención de planos (la de SolidWorks):
 La pieza "crece" en +Y (arriba).
 """
 import math
+import struct
 from pathlib import Path
 
 import pythoncom
@@ -71,6 +72,31 @@ def a_png(ruta_bmp):
                       min(caja[2] + m, im.width), min(caja[3] + m, im.height)))
     im.save(ruta_bmp.with_suffix(".png"))
     ruta_bmp.unlink()
+
+
+def orientar_stl(ruta, boca_abajo):
+    """SolidWorks exporta con Y arriba; los slicers esperan Z arriba. Gira la malla y
+    la apoya en Z = 0. Con boca_abajo, la cara superior de la pieza queda en la cama.
+    Devuelve las medidas (x, y, z) de la malla en mm."""
+    datos = Path(ruta).read_bytes()
+    n = struct.unpack_from("<I", datos, 80)[0]
+    if boca_abajo:
+        f = lambda x, y, z: (x, z, -y)   # +Y local -> -Z (cara superior abajo)
+    else:
+        f = lambda x, y, z: (x, -z, y)   # +Y local -> +Z
+    tris = []
+    for i in range(n):
+        v = struct.unpack_from("<12f", datos, 84 + 50 * i)
+        tris.append([f(*v[0:3]), f(*v[3:6]), f(*v[6:9]), f(*v[9:12])])
+    mins = [min(t[k][c] for t in tris for k in (1, 2, 3)) for c in range(3)]
+    salida = bytearray(datos[:84])
+    for t in tris:
+        nrm = t[0]
+        pts = [tuple(p[c] - mins[c] for c in range(3)) for p in t[1:]]
+        salida += struct.pack("<12fH", *nrm, *pts[0], *pts[1], *pts[2], 0)
+    Path(ruta).write_bytes(bytes(salida))
+    maxs = [max(t[k][c] for t in tris for k in (1, 2, 3)) - mins[c] for c in range(3)]
+    return maxs
 
 
 def cerrar_de_carpeta(sw, carpeta):
@@ -337,14 +363,37 @@ class Pieza:
             f.Name = nombre
         return f
 
-    def revolucion(self, croquis, nombre=None, angulo=360.0, cortar=False):
+    def revolucion(self, croquis, nombre=None, angulo=360.0, cortar=False, fusionar=True):
         """El croquis debe incluir una línea constructiva como eje (se selecciona sola)."""
         self._sel_croquis(croquis)
         f = TF(self.fm.FeatureRevolve2(True, True, False, cortar, False, False, 0, 0,
                                     math.radians(angulo), 0, False, False, 0, 0, 0, 0, 0,
-                                    True, True, True))
+                                    fusionar, True, True))
         if f is None:
             raise RuntimeError(f"{self.nombre}: falló revolución {nombre}")
+        if nombre:
+            f.Name = nombre
+        return f
+
+    # ------------------------------------------------------------ piezas multicuerpo
+    # En una pieza con varios cuerpos, "fusionar" con selección automática también junta
+    # cuerpos que solo están cerca (sin tocarse). Por eso ahí cada operación nueva nace
+    # como cuerpo aparte (fusionar=False) y se suma a mano al cuerpo que le toca.
+    def cuerpos_de(self, feat):
+        """Cuerpos sólidos a los que pertenecen las caras de una operación (sin repetir;
+        una operación con varios contornos sueltos deja varios cuerpos)."""
+        vistos = {}
+        for cara in feat.GetFaces() or []:
+            b = T(T(cara, "IFace2").GetBody(), "IBody2")
+            vistos.setdefault(b.Name, b)
+        return list(vistos.values())
+
+    def sumar(self, cuerpos, nombre=None):
+        """Combinar (sumar) exactamente esos cuerpos."""
+        herr = VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_DISPATCH, list(cuerpos))
+        f = TF(self.fm.InsertCombineFeature(15903, NADA, herr))  # 15903 = swBodyOperationType ADD
+        if f is None:
+            raise RuntimeError(f"{self.nombre}: falló combinar {nombre}")
         if nombre:
             f.Name = nombre
         return f

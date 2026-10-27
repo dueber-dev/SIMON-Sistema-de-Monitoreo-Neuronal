@@ -14,7 +14,6 @@ Coordenadas (las de SolidWorks): Y arriba, Z hacia el frente. La pared trasera (
 las salidas del USB del ESP32 y del cable del panel. Croquis en planta: (x, y) = (X, -Z).
 """
 import math
-import struct
 import sys
 from pathlib import Path
 
@@ -181,31 +180,6 @@ def tapa(sw):
     return p
 
 
-# ------------------------------------------------------------------ STL para imprimir
-def orientar_stl(ruta, tapa_boca_abajo):
-    """SolidWorks exporta con Y arriba; los slicers esperan Z arriba. Gira la malla y
-    la apoya en Z = 0. La tapa se voltea para que su cara superior quede en la cama."""
-    datos = Path(ruta).read_bytes()
-    n = struct.unpack_from("<I", datos, 80)[0]
-    if tapa_boca_abajo:
-        f = lambda x, y, z: (x, z, -y)   # +Y local -> -Z (cara superior abajo)
-    else:
-        f = lambda x, y, z: (x, -z, y)   # +Y local -> +Z
-    tris = []
-    for i in range(n):
-        v = struct.unpack_from("<12f", datos, 84 + 50 * i)
-        tris.append([f(*v[0:3]), f(*v[3:6]), f(*v[6:9]), f(*v[9:12])])
-    mins = [min(t[k][c] for t in tris for k in (1, 2, 3)) for c in range(3)]
-    salida = bytearray(datos[:84])
-    for t in tris:
-        nrm = t[0]
-        pts = [tuple(p[c] - mins[c] for c in range(3)) for p in t[1:]]
-        salida += struct.pack("<12fH", *nrm, *pts[0], *pts[1], *pts[2], 0)
-    Path(ruta).write_bytes(bytes(salida))
-    maxs = [max(t[k][c] for t in tris for k in (1, 2, 3)) - mins[c] for c in range(3)]
-    return maxs
-
-
 # ------------------------------------------------------------------ ensamble
 def matriz(t, rot=None):
     R = rot or [1, 0, 0, 0, 1, 0, 0, 0, 1]
@@ -275,7 +249,7 @@ def main():
             p.captura(CAPTURAS / f"{p.nombre}_abajo.bmp", vista="*Bottom")
             stl = STL / f"{p.nombre}.stl"
             p.exportar(stl)
-            dims = orientar_stl(stl, boca_abajo)
+            dims = swlib.orientar_stl(stl, boca_abajo)
             print(f"{p.nombre:18s} vol={vol:5.1f} cm3 (~{vol * 1.24:4.0f} g PLA macizo)  "
                   f"STL {dims[0]:.1f} x {dims[1]:.1f} x {dims[2]:.1f} mm  err={err}")
         else:
