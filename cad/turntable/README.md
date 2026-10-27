@@ -31,7 +31,10 @@ que no se fusionan:
   - **Empújalo** y su diente entra en una muesca: queda trabado.
   - **Jálalo unos 5 mm** y gira libre otra vez.
   - Está en la orilla, así que lo alcanzas aunque la estación esté encima.
-- **Paso de cables de Ø24** por el centro de la base y del plato. Cabe un conector USB.
+- **Agujero central de Ø24** en la base y en el plato. Arriba, el plato tiene un **hexágono de
+  24 mm entre caras y 6 de hondo** donde entra a presión el buje del soporte del panel
+  ([modulo_panel](../modulo_panel/README.md)). Ya no sirve de paso de cables: la base va plana
+  sobre la mesa y el cable no tendría por dónde salir. El USB baja por la orilla.
 
 ![base](capturas/base_y_seguro.png)
 ![plato](capturas/plato_abajo.png)
@@ -88,8 +91,9 @@ Todas las medidas están al inicio de `turntable_simon.py`. Si cambias alguna, v
 
 ## Para tu acople
 
-La cara de arriba del plato es un disco plano de Ø100 con el agujero de Ø24 al centro. Al
-modelar tu acople en este mismo archivo:
+La cara de arriba del plato es un disco plano de Ø100 con el hexágono del buje al centro. El
+soporte de la caja y del panel ya está hecho en [modulo_panel](../modulo_panel/README.md). Si
+modelas otro acople en este mismo archivo:
 
 - Crea su primera operación con **"Fusionar resultado" desmarcado** y luego usa *Insertar → Operaciones → Combinar* para sumarlo solo a `Plato_gira`.
 - Si dejas "Fusionar resultado" marcado, SolidWorks puede juntar cuerpos que solo están cerca, aunque no se toquen.

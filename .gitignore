@@ -28,3 +28,6 @@ desktop.ini
 # SolidWorks: archivos de bloqueo mientras el documento está abierto
 ~$*
 cad/__pycache__/
+
+# SolidWorks (archivos de bloqueo mientras un documento está abierto)
+~$*

@@ -45,7 +45,11 @@ BASE_T = 4.0                    # espesor de la base
 PLATO_T = 3.0                   # espesor del plato
 Y_PLATO = 16.0                  # cara inferior del plato: la falda mide Y_PLATO - BASE_T = 12
 FALDA_RI = 47.5                 # falda de 2.5 de pared, como la caja
-R_CABLES = 12.0                 # paso de cables de Ø24 por el centro (cabe un conector USB)
+R_CABLES = 12.0                 # agujero central de Ø24
+# Hexágono arriba del agujero central del plato: ahí entra a presión el buje del soporte
+# del panel (cad/modulo_panel). Centra el soporte y no lo deja girar.
+HEX_PLATO = 24.0                # entre caras (el buje mide 23.8: 0.1 por lado)
+HEX_PROF = 6.0
 
 # Núcleo (en la base) y dedos (en el plato): la "rueda" del mecanismo, Ø49
 NUCLEO_RI, NUCLEO_R = 16.0, 23.0      # tubo del núcleo
@@ -134,6 +138,10 @@ def plato(p):
     s = p.cerrar_croquis("Croquis_paso_cables")
     p.cortar(s, None, "Paso_cables", ambos=True)
 
+    p.croquis(p.planta, Y_PLATO + PLATO_T); p.hexagono(0, 0, HEX_PLATO)
+    s = p.cerrar_croquis("Croquis_hexagono_buje")
+    p.cortar(s, HEX_PROF, "Hexagono_buje", sentido=-1)
+
     paso = 360 / N_DEDOS
     p.croquis(p.planta, BASE_T)
     for k in range(N_DEDOS):
@@ -150,6 +158,9 @@ def plato(p):
     p.cortar(s, MUESCA_H, "Muescas_seguro")
 
     p.chaflan_contorno((0, 1, 0), Y_PLATO + PLATO_T, CHAFLAN, "Chaflan_cara_superior")
+    # La cara de arriba va en la cama: sin este chaflán, la pata de elefante cerraría la
+    # boca del hexágono y el buje no entraría con 0.1 de holgura.
+    p.chaflan_contorno((0, 1, 0), Y_PLATO + PLATO_T, 0.4, "Chaflan_hexagono", interior=True)
     return f_plato
 
 

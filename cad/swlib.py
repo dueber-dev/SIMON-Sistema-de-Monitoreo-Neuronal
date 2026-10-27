@@ -104,6 +104,29 @@ def orientar_stl(ruta, boca_abajo):
     return maxs
 
 
+def girar_stl(ruta, arriba):
+    """Gira un STL exportado por SolidWorks para que el eje `arriba` de la pieza ("+X",
+    "-X", "+Y", ...) quede hacia arriba (+Z) en el slicer, y lo apoya en Z = 0.
+    Devuelve las medidas (x, y, z) en mm."""
+    giros = {"+Y": lambda x, y, z: (x, -z, y), "-Y": lambda x, y, z: (x, z, -y),
+             "+X": lambda x, y, z: (-z, y, x), "-X": lambda x, y, z: (z, y, -x),
+             "+Z": lambda x, y, z: (x, y, z), "-Z": lambda x, y, z: (-x, y, -z)}
+    f = giros[arriba]
+    datos = Path(ruta).read_bytes()
+    n = struct.unpack_from("<I", datos, 80)[0]
+    tris = []
+    for i in range(n):
+        v = struct.unpack_from("<12f", datos, 84 + 50 * i)
+        tris.append([f(*v[0:3]), f(*v[3:6]), f(*v[6:9]), f(*v[9:12])])
+    mins = [min(t[k][c] for t in tris for k in (1, 2, 3)) for c in range(3)]
+    salida = bytearray(datos[:84])
+    for t in tris:
+        pts = [tuple(p[c] - mins[c] for c in range(3)) for p in t[1:]]
+        salida += struct.pack("<12fH", *t[0], *pts[0], *pts[1], *pts[2], 0)
+    Path(ruta).write_bytes(bytes(salida))
+    return [max(t[k][c] for t in tris for k in (1, 2, 3)) - mins[c] for c in range(3)]
+
+
 def cerrar_de_carpeta(sw, carpeta):
     """Cierra solo los documentos abiertos que vivan en `carpeta` (para poder sobrescribirlos)."""
     carpeta = str(Path(carpeta).resolve()).lower()
@@ -139,6 +162,7 @@ class Pieza:
             f = TF(call(f, "GetNextFeature"))
         self.alzado, self.planta, self.lateral = planos[:3]
         self._planos = {}
+        self.sin_definir = []   # croquis que no quedaron totalmente definidos
         self.sk.AddToDB = True
         self.sk.DisplayWhenAdded = False
 
@@ -279,7 +303,8 @@ class Pieza:
         return [abajo, der, arriba, izq] + arcos
 
     def texto(self, x, y, txt, alto, fuente="Arial Black"):
-        """Texto de croquis (para grabar en bajo relieve), empezando en (x, y)."""
+        """Texto de croquis (para grabar en bajo relieve), empezando en (x, y). No se gira:
+        girado por la API (Escapement) los renglones salen torcidos y de otro tamaño."""
         st = self.doc.InsertSketchText(x * M, y * M, 0, txt, 0, 0, 0, 100, 100)
         if st is None:
             raise RuntimeError(f"{self.nombre}: no pude crear el texto {txt!r}")
@@ -322,11 +347,38 @@ class Pieza:
             l.ConstructionGeometry = True
         return l
 
-    def cerrar_croquis(self, nombre=None):
+    def definir_croquis(self):
+        """Termina de definir el croquis activo (queda en negro): agrega las relaciones y
+        cotas que falten, medidas desde el origen. Devuelve True si quedó definido.
+        En un plano desfasado el origen de la pieza no está en el croquis y SolidWorks no lo
+        acepta como referencia; por eso se pone un punto en (0, 0) coincidente con el origen
+        y las cotas se miden desde ese punto."""
+        punto = self.sk.CreatePoint(0, 0, 0)
+        if punto is None:
+            return False
+        self.limpiar()
+        T(punto, "ISketchPoint").Select4(False, NADA)
+        self.ext.SelectByID2("Point1@Origin", "EXTSKETCHPOINT", 0, 0, 0, True, 0, NADA, 0)
+        self.doc.SketchAddConstraints("sgCOINCIDENT")
+        self.limpiar()
+        # todas las entidades, todas las relaciones, cotas en línea base desde ese punto. A
+        # veces queda a medias y una segunda pasada lo termina; más pasadas pueden dejarlo
+        # sin solución, así que solo se reintenta una vez.
+        croquis = T(self.sk.ActiveSketch, "ISketch")
+        for _ in range(2):
+            self.sk.FullyDefineSketch(True, True, 1023, True, 1, punto, 1, punto, 1, 1)
+            if croquis.GetConstrainedStatus() != 2:    # 2 = le falta definir
+                break
+        return croquis.GetConstrainedStatus() == 3
+
+    def cerrar_croquis(self, nombre=None, definir=True):
+        definido = self.definir_croquis() if definir else True
         self.sk.InsertSketch(True)
         f = TF(self.doc.FeatureByPositionReverse(0))
         if nombre and f is not None:
             f.Name = nombre
+        if not definido:
+            self.sin_definir.append(nombre or (f.Name if f is not None else "?"))
         return f
 
     # ------------------------------------------------------------ operaciones
@@ -403,6 +455,63 @@ class Pieza:
             f.Name = nombre
         return f
 
+    def cuerpos(self):
+        pd = T(self.doc, "IPartDoc")
+        return [T(b, "IBody2") for b in (pd.GetBodies2(0, False) or [])]
+
+    def cuerpo(self, nombre):
+        for b in self.cuerpos():
+            if b.Name == nombre:
+                return b
+        raise KeyError(f"{self.nombre}: no hay cuerpo {nombre}")
+
+    def insertar_pieza(self, ruta, nombre=None):
+        """Mete los cuerpos sólidos de otra pieza (.SLDPRT) en esta, en su posición de origen."""
+        antes = {b.Name for b in self.cuerpos()}
+        f = TF(T(self.doc, "IPartDoc").InsertPart3(str(ruta), 1, ""))   # 1 = solo sólidos
+        if f is None:
+            raise RuntimeError(f"{self.nombre}: no pude insertar {ruta}")
+        if nombre:
+            f.Name = nombre
+        return [b for b in self.cuerpos() if b.Name not in antes]
+
+    def mover(self, cuerpos, trasl=(0, 0, 0), punto=(0, 0, 0), giro=(0, 0, 0), nombre=None):
+        """Mover/copiar cuerpo (sin copiar): gira `giro` grados alrededor de X, Y, Z por
+        `punto` y traslada `trasl` mm. Queda como operación editable en el árbol."""
+        self.limpiar()
+        datos = T(T(self.doc.SelectionManager, "ISelectionMgr").CreateSelectData(), "ISelectData")
+        datos.Mark = 1   # Mover/copiar solo toma los cuerpos seleccionados con marca 1
+        for i, b in enumerate(cuerpos):
+            b.Select2(i > 0, datos)
+        # Ojo: aunque se llamen RotAngleX/Y/Z, la API gira el primero alrededor de Z y el
+        # tercero alrededor de X (comprobado con la caja envolvente); por eso van al revés.
+        f = TF(self.fm.InsertMoveCopyBody2(trasl[0] * M, trasl[1] * M, trasl[2] * M, 0,
+                                           punto[0] * M, punto[1] * M, punto[2] * M,
+                                           *[math.radians(a) for a in reversed(giro)], False, 1))
+        if f is None:
+            raise RuntimeError(f"{self.nombre}: falló mover {nombre}")
+        if nombre:
+            f.Name = nombre
+        self.limpiar()
+        return f
+
+    def choque(self, b1, b2):
+        """Volumen (mm3) que comparten dos cuerpos; 0 si no se tocan o solo se apoyan."""
+        c1, c2 = T(b1.Copy(), "IBody2"), T(b2.Copy(), "IBody2")
+        r = c1.Operations2(15901, c2, 0)   # 15901 = intersectar
+        res = r[0] if isinstance(r, tuple) else r
+        return sum(T(x, "IBody2").GetMassProperties(1.0)[3] for x in (res or [])) * 1e9
+
+    def color_cuerpo(self, cuerpo, rgb, transparencia=0.0):
+        cuerpo.MaterialPropertyValues2 = VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_R8,
+                                                 [*rgb, 1.0, 1.0, 0.3, 0.3, transparencia, 0.0])
+
+    def solo(self, nombres):
+        """Deja visibles solo los cuerpos con esos nombres."""
+        for b in self.cuerpos():
+            b.HideBody(b.Name not in nombres)
+        self.doc.GraphicsRedraw2()
+
     def redondear(self, aristas, r, nombre=None):
         """aristas: lista de puntos (x, y, z) sobre las aristas."""
         self.limpiar()
@@ -413,14 +522,18 @@ class Pieza:
             f.Name = nombre
         return f
 
-    def chaflan_contorno(self, normal, nivel, d, nombre=None):
+    def chaflan_contorno(self, normal, nivel, d, nombre=None, interior=False, cuerpo=None):
         """Chaflán a 45° de d mm en el contorno exterior de la cara plana con esa normal
         (p. ej. (0, -1, 0)) que está a `nivel` mm sobre su eje. No toca agujeros ni textos
-        de esa cara. Se eligen las aristas por geometría, no por clic, así no depende de la vista."""
+        de esa cara. Se eligen las aristas por geometría, no por clic, así no depende de la vista.
+        Con interior=True hace lo contrario: solo los agujeros de esa cara. `cuerpo` (nombre)
+        limita la búsqueda a un cuerpo."""
         eje = [abs(c) for c in normal].index(1)
         pd = T(self.doc, "IPartDoc")
         aristas = []
         for b in pd.GetBodies2(0, True) or []:
+            if cuerpo is not None and T(b, "IBody2").Name != cuerpo:
+                continue
             for cara in T(b, "IBody2").GetFaces() or []:
                 cara = T(cara, "IFace2")
                 n = cara.Normal
@@ -431,7 +544,7 @@ class Pieza:
                     continue
                 for lazo in cara.GetLoops() or []:
                     lazo = T(lazo, "ILoop2")
-                    if call(lazo, "IsOuter"):
+                    if bool(call(lazo, "IsOuter")) != interior:
                         aristas += list(lazo.GetEdges() or [])
         if not aristas:
             raise RuntimeError(f"{self.nombre}: no encontré la cara {normal} a {nivel} mm")
@@ -470,8 +583,22 @@ class Pieza:
 
     # ------------------------------------------------------------ variables globales
     def variable(self, nombre, valor_mm):
+        """Variable global (antes de las ecuaciones que la usan). Con Solve=True SolidWorks
+        la rechaza (devuelve -1) mientras nada la usa."""
         eq = T(call(self.doc, "GetEquationMgr"), "IEquationMgr")
-        eq.Add2(-1, f'"{nombre}" = {valor_mm}', True)
+        if eq.Add2(-1, f'"{nombre}" = {valor_mm}', False) < 0:
+            raise RuntimeError(f"{self.nombre}: no pude crear la variable {nombre}")
+
+    def cambiar_variable(self, nombre, valor_mm):
+        """Cambia el valor de una variable global y reconstruye."""
+        eq = T(call(self.doc, "GetEquationMgr"), "IEquationMgr")
+        for i in range(eq.GetCount()):
+            if eq.GlobalVariable(i) and eq.Equation(i).split("=")[0].strip() == f'"{nombre}"':
+                eq.SetEquation(i, f'"{nombre}" = {valor_mm}')
+                eq.EvaluateAll()
+                self.doc.ForceRebuild3(False)
+                return
+        raise KeyError(f"{self.nombre}: no hay variable {nombre}")
 
     def ligar(self, cota_nombre, variable):
         eq = T(call(self.doc, "GetEquationMgr"), "IEquationMgr")

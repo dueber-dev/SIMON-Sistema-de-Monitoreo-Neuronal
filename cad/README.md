@@ -6,6 +6,9 @@
 >
 > La **base giratoria** (turntable de Ø100 con clic cada 15° y seguro) está en
 > [turntable/](turntable/README.md).
+>
+> El **módulo del panel** (turntable + soporte de la caja + bisagra con perilla para inclinar
+> el panel de 0 a 90°, con transportador) está en [modulo_panel/](modulo_panel/README.md).
 
 Modelo nativo de **SolidWorks 2025**: piezas `.SLDPRT` con árbol de operaciones y croquis
 acotados, más un ensamble `.SLDASM`. Se genera por la API de SolidWorks desde Python, así
