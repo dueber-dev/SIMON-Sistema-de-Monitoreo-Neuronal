@@ -164,10 +164,11 @@ def tapa(sw):
     lm_x, lm_z = pcb(9.0, 26.32)
     p.croquis(p.planta)
     p.circulo(ldr_x, -ldr_z, 6)
+    paso = RANURA + NERVIO
     for k in range(6):
-        p.ranura(-16 - 4 * k, 0, 34, 2, vertical=True)
-    for k in (-4, 0, 4):
-        p.ranura(lm_x + k, -(lm_z - 5.5), 8, 2, vertical=True)
+        p.ranura(-16 - paso * k, 0, 34, RANURA, vertical=True)
+    for k in (-1, 0, 1):
+        p.ranura(lm_x + paso * k, -(lm_z - 5.5), 8, RANURA, vertical=True)
     s = p.cerrar_croquis("Croquis_ventana_y_ventilas")
     p.cortar(s, None, "Ventana_LDR_y_ventilas", ambos=True)
 

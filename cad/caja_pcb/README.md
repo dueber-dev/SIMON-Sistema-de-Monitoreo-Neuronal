@@ -16,7 +16,7 @@ para imprimirse en una **Flashforge Adventurer 5M con boquilla de 0.4 mm**, sin 
 | Piso y tapa | 2.0 mm (10 capas de 0.2; ahorra filamento sin perder rigidez) |
 | PCB | apoyada 4 mm sobre el piso (las soldaduras van abajo) |
 | Espacio sobre la PCB | 23.4 mm (el INA219 sobre su header mide ~20 mm) |
-| Material | 38.3 cm³ macizo: caja 27.7 + tapa 10.6 (≈ 47 g de PLA si fuera 100 % lleno) |
+| Material | 37.9 cm³ macizo: caja 27.7 + tapa 10.2 (≈ 47 g de PLA si fuera 100 % lleno) |
 
 ## Cierre labio / escalón (lip/groove)
 
@@ -43,7 +43,7 @@ que la primera caja. Ahí aplicas *Insertar → Operaciones de sujeción → Lab
 - **Alivios de Ø2 en las esquinas interiores:** la impresora redondea las esquinas y la placa, que es cuadrada, se trabaría. Con el alivio entra libre.
 - **Pared trasera:** salida para el **USB del ESP32** y para el **cable del panel** (bornera J1). El frente queda limpio.
 - **Ventilación:**
-  - **Las ranuras de la base miden 3 mm de ancho**, así pasa un jumper dupont (2.54 mm) por ellas. Entre ranuras quedan 2 mm de material. Las dos medidas son `RANURA` y `NERVIO` en `caja_simon.py`.
+  - **Todas las ranuras (base y tapa) miden 3 mm de ancho**, así pasa un jumper dupont (2.54 mm) por ellas. Entre ranuras quedan 2 mm de material. Las dos medidas son `RANURA` y `NERVIO` en `caja_simon.py`.
   - **Rejilla diagonal en el piso:** 7 ranuras de 3 × 44 mm a 45°. El aire entra por abajo y sale por la tapa (efecto chimenea). Se imprimen como huecos en las primeras capas, sin soporte.
   - **5 ranuras diagonales de 3 × 19 mm a 45° en cada pared corta.** El borde de arriba de cada ranura queda a 45°, que la impresora hace sin soporte.
   - Ranuras en la tapa sobre las resistencias de carga y el INA219, que son lo que más calienta.
