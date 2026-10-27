@@ -24,3 +24,7 @@ desktop.ini
 # Configuración local de Claude (launch.json sí se comparte)
 .claude/*
 !.claude/launch.json
+
+# SolidWorks: archivos de bloqueo mientras el documento está abierto
+~$*
+cad/__pycache__/
