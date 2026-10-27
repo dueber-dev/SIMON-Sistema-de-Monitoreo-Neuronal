@@ -160,15 +160,6 @@ def tapa(sw):
         s = p.cerrar_croquis("Croquis_falda")
         p.extruir(s, FALDA_H, "Escalon_groove", sentido=-1)
 
-    # Postes que aprietan la PCB contra sus apoyos (0.1 mm de aire)
-    p.croquis(p.planta)
-    for sx in (-1, 1):
-        for sz in (-1, 1):
-            x, z = pcb(44 + sx * 41, 25 + sz * 22)
-            p.circulo(x, -z, 5, cotar=(sx > 0 and sz > 0))
-    s = p.cerrar_croquis("Croquis_postes")
-    p.extruir(s, TAPA_ABAJO - PCB_ARRIBA - 0.1, "Postes_PCB", sentido=-1)
-
     # Ventana de la LDR, ventilas sobre las resistencias/INA219 y junto al LM35
     ldr_x, ldr_z = pcb(10.54, 36)
     lm_x, lm_z = pcb(9.0, 26.32)

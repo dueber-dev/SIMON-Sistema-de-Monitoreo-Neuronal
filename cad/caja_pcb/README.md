@@ -16,7 +16,7 @@ para imprimirse en una **Flashforge Adventurer 5M con boquilla de 0.4 mm**, sin 
 | Piso y tapa | 2.0 mm (10 capas de 0.2; ahorra filamento sin perder rigidez) |
 | PCB | apoyada 4 mm sobre el piso (las soldaduras van abajo) |
 | Espacio sobre la PCB | 23.4 mm (el INA219 sobre su header mide ~20 mm) |
-| Material | 40.2 cm³ macizo: caja 27.7 + tapa 12.5 (≈ 50 g de PLA si fuera 100 % lleno) |
+| Material | 38.3 cm³ macizo: caja 27.7 + tapa 10.6 (≈ 47 g de PLA si fuera 100 % lleno) |
 
 ## Cierre labio / escalón (lip/groove)
 
@@ -39,7 +39,7 @@ que la primera caja. Ahí aplicas *Insertar → Operaciones de sujeción → Lab
 
 ## Detalles de diseño
 
-- **La PCB se ubica con las paredes**: no lleva agujeros. Descansa en 4 apoyos de esquina y los **4 postes de la tapa** la aprietan contra ellos (0.1 mm de aire).
+- **La PCB se ubica con las paredes**: no lleva agujeros. Descansa en 4 apoyos de esquina. La tapa no lleva postes, así que nada la aprieta desde arriba; si se mueve, fíjala a los apoyos con una gota de silicón caliente o cinta doble cara.
 - **Alivios de Ø2 en las esquinas interiores:** la impresora redondea las esquinas y la placa, que es cuadrada, se trabaría. Con el alivio entra libre.
 - **Pared trasera:** salida para el **USB del ESP32** y para el **cable del panel** (bornera J1). El frente queda limpio.
 - **Ventilación:**
@@ -58,7 +58,7 @@ que la primera caja. Ahí aplicas *Insertar → Operaciones de sujeción → Lab
 ## Imprimir (Flashforge Orca, perfil *Adventurer 5M 0.4 Nozzle*)
 
 Los STL de `stl/` ya vienen orientados: caja con el piso abajo, tapa con su cara plana abajo
-y los postes hacia arriba. Solo hay que importarlos.
+y el escalón hacia arriba. Solo hay que importarlos.
 
 | Ajuste | Valor |
 |---|---|
@@ -66,7 +66,7 @@ y los postes hacia arriba. Solo hay que importarlos.
 | Altura de capa | 0.2 mm |
 | Perímetros (wall loops) | 3: con 2.5 mm la pared sale maciza y el labio sale como perímetros |
 | Capas superiores / inferiores | 4 / 4 |
-| Relleno | 15 % giroide (solo afecta piso, tapa y postes) |
+| Relleno | 15 % giroide (solo afecta piso y tapa) |
 | Soportes | ninguno |
 | Costura (seam) | alineada atrás, para que quede en la pared del USB |
 | Compensación pata de elefante | 0.1 mm |
@@ -74,7 +74,7 @@ y los postes hacia arriba. Solo hay que importarlos.
 El slicer dará los gramos exactos. Con estos ajustes debería quedar por debajo del valor macizo.
 
 **Prueba de ajuste:** antes de imprimir todo, en Orca puedes cortar (*Cut*) los 5 mm superiores
-de la caja y la tapa sin los postes. Así pruebas el labio en pocos minutos.
+de la caja e imprimirlos junto con la tapa, que solo mide 4.5 mm de alto. Así pruebas el labio rápido.
 
 ## Supuestos a confirmar
 
