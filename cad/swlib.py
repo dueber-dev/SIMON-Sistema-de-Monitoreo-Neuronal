@@ -10,6 +10,7 @@ Convención de planos (la de SolidWorks):
   lateral (Right, YZ): croquis x = -Z, y = Y
 La pieza "crece" en +Y (arriba).
 """
+import atexit
 import math
 import struct
 from pathlib import Path
@@ -55,7 +56,11 @@ INPUT_DIM_ON_CREATE = 10
 def sw_app():
     sw = SL.ISldWorks(win32com.client.Dispatch("SldWorks.Application")._oleobj_)
     sw.Visible = True
-    sw.SetUserPreferenceToggle(INPUT_DIM_ON_CREATE, False)  # sin diálogos al acotar
+    # Sin diálogos al acotar mientras corre el script; al salir se deja como estaba,
+    # para que al acotar a mano vuelva a abrirse la ventana de la medida.
+    antes = sw.GetUserPreferenceToggle(INPUT_DIM_ON_CREATE)
+    sw.SetUserPreferenceToggle(INPUT_DIM_ON_CREATE, False)
+    atexit.register(sw.SetUserPreferenceToggle, INPUT_DIM_ON_CREATE, antes)
     return sw
 
 
