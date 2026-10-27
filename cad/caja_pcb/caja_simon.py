@@ -54,6 +54,8 @@ FALDA_H = 2.5
 BORDE = TAPA_ABAJO - FALDA_H    # 28.5: altura del borde de la caja (donde asienta la tapa)
 
 CHAFLAN = 0.6                   # bordes que tocan la cama (evita la "pata de elefante")
+RANURA = 3.0                    # ancho de las ranuras de la base: pasa un jumper dupont (2.54)
+NERVIO = 2.0                    # material entre ranuras (~5 líneas de 0.42)
 
 PLANO = False                   # True: sin labio ni escalón (ver --plano)
 SUFIJO = ""
@@ -120,22 +122,20 @@ def caja(sw):
     p.cortar(s, None, "Salidas_USB_y_panel", sentido=-1)
 
     # Ventilación en las paredes cortas: ranuras a 45°. El borde de arriba de cada ranura
-    # queda a 45°, que la impresora hace sin soporte. Paso de 4.4 mm medido en perpendicular.
+    # queda a 45°, que la impresora hace sin soporte. El paso se mide en perpendicular.
+    paso = (RANURA + NERVIO) * math.sqrt(2)
     p.croquis(p.lateral)
-    paso = 4.4 * math.sqrt(2)
-    for k in range(6):
-        p.ranura((k - 2.5) * paso, PCB_ARRIBA + 10, 19, 2.2, angulo=45)
+    for k in range(-2, 3):
+        p.ranura(k * paso, PCB_ARRIBA + 10, 19, RANURA, angulo=45)
     s = p.cerrar_croquis("Croquis_ventilas")
     p.cortar(s, None, "Ventilas_laterales", ambos=True)
 
     # Rejilla diagonal en el piso: el aire entra por abajo y sale por las ventilas de la tapa
-    # (efecto chimenea). 4 mm entre ranuras medidos en perpendicular, como en la tapa. Al
-    # imprimir son huecos en las primeras capas, así que no llevan soporte; queda lejos de
-    # los apoyos de las esquinas.
+    # (efecto chimenea). Al imprimir son huecos en las primeras capas, así que no llevan
+    # soporte; queda lejos de los apoyos de las esquinas.
     p.croquis(p.planta)
-    paso = 4 * math.sqrt(2)
-    for k in range(-4, 5):
-        p.ranura(k * paso, 0, 44, 2, angulo=45)
+    for k in range(-3, 4):
+        p.ranura(k * paso, 0, 44, RANURA, angulo=45)
     s = p.cerrar_croquis("Croquis_rejilla_piso")
     p.cortar(s, PISO, "Rejilla_piso", sentido=1)
 
