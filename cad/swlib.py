@@ -187,9 +187,14 @@ class Pieza:
                 self._cota(ver, cx + w / 2 + 4, cy)
         return segs
 
-    def ranura(self, cx, cy, largo, ancho, vertical=False):
-        """Ranura recta (oblonga) centrada."""
-        if vertical:
+    def ranura(self, cx, cy, largo, ancho, vertical=False, angulo=None):
+        """Ranura recta (oblonga) centrada. `angulo` (grados desde el eje x del croquis)
+        la inclina; si se da, manda sobre `vertical`."""
+        if angulo is not None:
+            a = math.radians(angulo)
+            dx, dy = (largo - ancho) / 2 * math.cos(a), (largo - ancho) / 2 * math.sin(a)
+            x1, y1, x2, y2 = cx - dx, cy - dy, cx + dx, cy + dy
+        elif vertical:
             x1, y1, x2, y2 = cx, cy - (largo - ancho) / 2, cx, cy + (largo - ancho) / 2
         else:
             x1, y1, x2, y2 = cx - (largo - ancho) / 2, cy, cx + (largo - ancho) / 2, cy

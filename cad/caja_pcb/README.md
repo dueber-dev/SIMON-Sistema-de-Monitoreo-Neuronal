@@ -16,7 +16,7 @@ para imprimirse en una **Flashforge Adventurer 5M con boquilla de 0.4 mm**, sin 
 | Piso y tapa | 2.0 mm (10 capas de 0.2; ahorra filamento sin perder rigidez) |
 | PCB | apoyada 4 mm sobre el piso (las soldaduras van abajo) |
 | Espacio sobre la PCB | 23.4 mm (el INA219 sobre su header mide ~20 mm) |
-| Material | 40.3 cm³ macizo: caja 27.9 + tapa 12.5 (≈ 50 g de PLA si fuera 100 % lleno) |
+| Material | 40.6 cm³ macizo: caja 28.1 + tapa 12.5 (≈ 50 g de PLA si fuera 100 % lleno) |
 
 ## Cierre labio / escalón (lip/groove)
 
@@ -43,8 +43,8 @@ que la primera caja. Ahí aplicas *Insertar → Operaciones de sujeción → Lab
 - **Alivios de Ø2 en las esquinas interiores:** la impresora redondea las esquinas y la placa, que es cuadrada, se trabaría. Con el alivio entra libre.
 - **Pared trasera:** salida para el **USB del ESP32** y para el **cable del panel** (bornera J1). El frente queda limpio.
 - **Ventilación:**
-  - **Rejilla en el piso:** 15 ranuras de 2 × 34 mm, con el mismo paso que las de la tapa. El aire entra por abajo y sale por la tapa (efecto chimenea). Se imprimen como huecos en las primeras capas, sin soporte.
-  - 7 ranuras verticales de 14 mm en cada pared corta, que se imprimen sin soporte.
+  - **Rejilla diagonal en el piso:** 9 ranuras de 2 × 44 mm a 45°, separadas 4 mm igual que las de la tapa. El aire entra por abajo y sale por la tapa (efecto chimenea). Se imprimen como huecos en las primeras capas, sin soporte.
+  - **6 ranuras diagonales a 45° en cada pared corta.** El borde de arriba de cada ranura queda a 45°, que la impresora hace sin soporte.
   - Ranuras en la tapa sobre las resistencias de carga y el INA219, que son lo que más calienta.
   - Tres ranuras junto al LM35.
   - Para que la rejilla del piso respire, pégale **4 patitas de hule** (bumpers de 2–3 mm) abajo. Si la caja queda pegada a la mesa, el piso casi no ventila.

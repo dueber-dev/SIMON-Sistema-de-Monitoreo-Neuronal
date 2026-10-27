@@ -119,19 +119,23 @@ def caja(sw):
     s = p.cerrar_croquis("Croquis_salidas")
     p.cortar(s, None, "Salidas_USB_y_panel", sentido=-1)
 
-    # Ventilación en las paredes cortas (ranuras verticales: se imprimen sin soporte)
+    # Ventilación en las paredes cortas: ranuras a 45°. El borde de arriba de cada ranura
+    # queda a 45°, que la impresora hace sin soporte. Paso de 4.4 mm medido en perpendicular.
     p.croquis(p.lateral)
-    for k in range(-15, 16, 5):
-        p.ranura(k, PCB_ARRIBA + 10, 14, 2.2, vertical=True)
+    paso = 4.4 * math.sqrt(2)
+    for k in range(6):
+        p.ranura((k - 2.5) * paso, PCB_ARRIBA + 10, 19, 2.2, angulo=45)
     s = p.cerrar_croquis("Croquis_ventilas")
     p.cortar(s, None, "Ventilas_laterales", ambos=True)
 
-    # Rejilla en el piso: el aire entra por abajo y sale por las ventilas de la tapa (efecto
-    # chimenea). Mismo paso que las ranuras de la tapa. Al imprimir son huecos en las
-    # primeras capas, así que no llevan soporte; queda lejos de los apoyos de las esquinas.
+    # Rejilla diagonal en el piso: el aire entra por abajo y sale por las ventilas de la tapa
+    # (efecto chimenea). 4 mm entre ranuras medidos en perpendicular, como en la tapa. Al
+    # imprimir son huecos en las primeras capas, así que no llevan soporte; queda lejos de
+    # los apoyos de las esquinas.
     p.croquis(p.planta)
-    for k in range(-7, 8):
-        p.ranura(4 * k, 0, 34, 2, vertical=True)
+    paso = 4 * math.sqrt(2)
+    for k in range(-4, 5):
+        p.ranura(k * paso, 0, 44, 2, angulo=45)
     s = p.cerrar_croquis("Croquis_rejilla_piso")
     p.cortar(s, PISO, "Rejilla_piso", sentido=1)
 
