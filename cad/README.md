@@ -1,5 +1,9 @@
 # CAD de SIMON — estación de inspección del panel solar
 
+> La **caja de la PCB para imprimir** tiene su propia carpeta: [caja_pcb/](caja_pcb/README.md)
+> (hueco de 90.5 × 52.5, labio/escalón, STL listos para la Adventurer 5M). La caja que aparece
+> en esta estación es el concepto anterior.
+
 Modelo nativo de **SolidWorks 2025**: piezas `.SLDPRT` con árbol de operaciones y croquis
 acotados, más un ensamble `.SLDASM`. Se genera por la API de SolidWorks desde Python, así
 que se puede editar de dos formas: directo en SolidWorks, o cambiando las medidas de

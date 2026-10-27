@@ -220,6 +220,40 @@ class Pieza:
         x1, y1 = cx + r * math.cos(math.radians(a1)), cy + r * math.sin(math.radians(a1))
         return self.sk.CreateArc(cx * M, cy * M, 0, x0 * M, y0 * M, 0, x1 * M, y1 * M, 0, 1)
 
+    def rect_redondeado(self, cx, cy, w, h, r, cotar=True):
+        """Rectángulo centrado con esquinas redondeadas de radio r (r=0 -> rect normal).
+        Acota ancho, alto y radio para que se pueda editar en SolidWorks."""
+        if r <= 0:
+            return self.rect(cx, cy, w, h, cotar)
+        x0, x1, y0, y1 = cx - w / 2, cx + w / 2, cy - h / 2, cy + h / 2
+        abajo = self.linea(x0 + r, y0, x1 - r, y0)
+        der = self.linea(x1, y0 + r, x1, y1 - r)
+        arriba = self.linea(x1 - r, y1, x0 + r, y1)
+        izq = self.linea(x0, y1 - r, x0, y0 + r)
+        arcos = [TS(self.arco(x1 - r, y0 + r, r, -90, 0)), TS(self.arco(x1 - r, y1 - r, r, 0, 90)),
+                 TS(self.arco(x0 + r, y1 - r, r, 90, 180)), TS(self.arco(x0 + r, y0 + r, r, 180, 270))]
+        if cotar:
+            for a, b, px, py in ((izq, der, cx, y1 + 5), (abajo, arriba, x1 + 5, cy)):
+                self.limpiar()
+                a.Select4(False, NADA)
+                b.Select4(True, NADA)
+                self.doc.AddDimension2(px * M, py * M, 0)
+            self._cota(arcos[1], x1 + r, y1 + r)
+            self.limpiar()
+        return [abajo, der, arriba, izq] + arcos
+
+    def texto(self, x, y, txt, alto, fuente="Arial Black"):
+        """Texto de croquis (para grabar en bajo relieve), empezando en (x, y)."""
+        st = self.doc.InsertSketchText(x * M, y * M, 0, txt, 0, 0, 0, 100, 100)
+        if st is None:
+            raise RuntimeError(f"{self.nombre}: no pude crear el texto {txt!r}")
+        st = T(st, "ISketchText")
+        tf = T(call(st, "GetTextFormat"), "ITextFormat")
+        tf.CharHeight = alto * M
+        tf.TypeFaceName = fuente
+        st.SetTextFormat(False, tf)
+        return st
+
     def hexagono(self, cx, cy, entre_caras):
         """Hexágono para alojar tuercas, con dos caras horizontales."""
         r = entre_caras / math.sqrt(3)
@@ -317,6 +351,50 @@ class Pieza:
             self.sel_arista(*p, append=i > 0)
         f = TF(self.fm.FeatureFillet3(195, r * M, 0, 0, 0, 0, 0, NADA, NADA, NADA, NADA, NADA, NADA, NADA))
         if f is not None and nombre:
+            f.Name = nombre
+        return f
+
+    def chaflan_contorno(self, normal, nivel, d, nombre=None):
+        """Chaflán a 45° de d mm en el contorno exterior de la cara plana con esa normal
+        (p. ej. (0, -1, 0)) que está a `nivel` mm sobre su eje. No toca agujeros ni textos
+        de esa cara. Se eligen las aristas por geometría, no por clic, así no depende de la vista."""
+        eje = [abs(c) for c in normal].index(1)
+        pd = T(self.doc, "IPartDoc")
+        aristas = []
+        for b in pd.GetBodies2(0, True) or []:
+            for cara in T(b, "IBody2").GetFaces() or []:
+                cara = T(cara, "IFace2")
+                n = cara.Normal
+                if any(abs(n[i] - normal[i]) > 1e-6 for i in range(3)):
+                    continue
+                caja = cara.GetBox()
+                if abs(caja[eje] * 1000 - nivel) > 1e-3:
+                    continue
+                for lazo in cara.GetLoops() or []:
+                    lazo = T(lazo, "ILoop2")
+                    if call(lazo, "IsOuter"):
+                        aristas += list(lazo.GetEdges() or [])
+        if not aristas:
+            raise RuntimeError(f"{self.nombre}: no encontré la cara {normal} a {nivel} mm")
+        self.limpiar()
+        for i, a in enumerate(aristas):
+            T(a, "IEntity").Select4(i > 0, NADA)
+        f = TF(self.fm.InsertFeatureChamfer(0, 1, d * M, math.radians(45), d * M, 0, 0, 0))
+        if f is None:
+            raise RuntimeError(f"{self.nombre}: falló el chaflán del contorno {normal}")
+        if nombre:
+            f.Name = nombre
+        return f
+
+    def chaflan(self, punto, d, nombre=None):
+        """Chaflán a 45° de d mm sobre la arista que pasa por `punto`, propagado a las
+        aristas tangentes (todo el contorno redondeado de una vez)."""
+        self.limpiar()
+        self.sel_arista(*punto)
+        f = TF(self.fm.InsertFeatureChamfer(4, 1, d * M, math.radians(45), d * M, 0, 0, 0))  # 4 = propagar a tangentes
+        if f is None:
+            raise RuntimeError(f"{self.nombre}: falló chaflán en {punto}")
+        if nombre:
             f.Name = nombre
         return f
 
