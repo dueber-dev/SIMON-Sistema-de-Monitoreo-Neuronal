@@ -36,18 +36,25 @@ PISO = 2.0                      # piso y tapa en 2.0 para ahorrar filamento (10 
 TAPA_T = 2.0
 R_EXT = 4.0                     # radio de las esquinas por fuera
 
-EXT_L, EXT_W = HUECO_L + 2 * PARED, HUECO_W + 2 * PARED      # 95.5 x 57.5
+ANCHO_ESP = 57.0                # ancho por dentro sobre la PCB: el ESP32 sobresale de la placa
+EXT_L, EXT_W = HUECO_L + 2 * PARED, ANCHO_ESP + 2 * PARED    # 95.5 x 62
+# El ESP32 sobresale por el lado del USB, así que todo el ensanche va hacia la pared trasera:
+# el contorno de la caja se corre DY hacia atrás (+y en el croquis de planta, que es -Z).
+DY = ANCHO_ESP - HUECO_W        # 4.5 mm de más atrás
+CY = DY / 2                     # centro del contorno en el croquis de planta
 
 APOYO = 4.0                     # la PCB queda 4 mm sobre el piso (soldaduras por abajo)
 PCB_T = 1.6
 PCB_ABAJO = PISO + APOYO        # 6.0
 PCB_ARRIBA = PCB_ABAJO + PCB_T  # 7.6
+ESCALON = PCB_ARRIBA + 2.5      # 10.1: hasta aquí el hueco es de 52.5 y ubica la PCB;
+                                # arriba se abre a 57 (el ESP32 va más alto, sobre sus headers)
 LIBRE = 23.4                    # espacio sobre la PCB (INA219 con su header ~20 mm)
 TAPA_ABAJO = PCB_ARRIBA + LIBRE # 31.0: cara inferior de la tapa
 
 # Labio / escalón. Anchos pensados en líneas de 0.42 mm: labio ~3 líneas, falda ~2.5.
-LABIO_W, LABIO_H = 1.25, 2.4
-HOLG_LG = 0.2                   # holgura por lado entre labio y falda (ajuste firme)
+LABIO_W, LABIO_H = 1.35, 2.4
+HOLG_LG = 0.1                   # holgura por lado entre labio y falda (con 0.2 quedó suelta)
 FALDA_W = PARED - LABIO_W - HOLG_LG   # 1.05
 FALDA_H = 2.5
 BORDE = TAPA_ABAJO - FALDA_H    # 28.5: altura del borde de la caja (donde asienta la tapa)
@@ -75,20 +82,24 @@ def pcb(x, y):
 def caja(sw):
     p = swlib.Pieza(sw, "caja_simon_base" + SUFIJO)
     h = alto_borde()
-    p.croquis(p.planta); p.rect_redondeado(0, 0, EXT_L, EXT_W, R_EXT)
+    p.croquis(p.planta); p.rect_redondeado(0, CY, EXT_L, EXT_W, R_EXT)
     s = p.cerrar_croquis("Croquis_contorno")
     p.extruir(s, h, "Cuerpo")
 
-    p.croquis(p.planta, h); p.rect(0, 0, HUECO_L, HUECO_W)
+    p.croquis(p.planta, h); p.rect(0, CY, HUECO_L, ANCHO_ESP)
+    s = p.cerrar_croquis("Croquis_hueco_ESP32")
+    p.cortar(s, h - ESCALON, "Hueco_ESP32", sentido=-1)
+
+    p.croquis(p.planta, ESCALON); p.rect(0, 0, HUECO_L, HUECO_W)
     s = p.cerrar_croquis("Croquis_hueco_PCB")
-    p.cortar(s, h - PISO, "Hueco_PCB", sentido=-1)
+    p.cortar(s, ESCALON - PISO, "Hueco_PCB", sentido=-1)
 
     if not PLANO:
         # Labio: la franja interior de la pared sube por encima del borde
         r_labio = R_EXT - FALDA_W - HOLG_LG
         p.croquis(p.planta, BORDE)
-        p.rect_redondeado(0, 0, HUECO_L + 2 * LABIO_W, HUECO_W + 2 * LABIO_W, r_labio)
-        p.rect(0, 0, HUECO_L, HUECO_W, cotar=False)
+        p.rect_redondeado(0, CY, HUECO_L + 2 * LABIO_W, ANCHO_ESP + 2 * LABIO_W, r_labio)
+        p.rect(0, CY, HUECO_L, ANCHO_ESP, cotar=False)
         s = p.cerrar_croquis("Croquis_labio")
         p.extruir(s, LABIO_H, "Labio_lip")
 
@@ -125,7 +136,7 @@ def caja(sw):
     paso = (RANURA + NERVIO) * math.sqrt(2)
     p.croquis(p.lateral)
     for k in range(-2, 3):
-        p.ranura(k * paso, PCB_ARRIBA + 10, 19, RANURA, angulo=45)
+        p.ranura(CY + k * paso, PCB_ARRIBA + 10, 19, RANURA, angulo=45)   # lateral: x = -Z
     s = p.cerrar_croquis("Croquis_ventilas")
     p.cortar(s, None, "Ventilas_laterales", ambos=True)
 
@@ -134,7 +145,7 @@ def caja(sw):
     # soporte; queda lejos de los apoyos de las esquinas.
     p.croquis(p.planta)
     for k in range(-3, 4):
-        p.ranura(k * paso, 0, 44, RANURA, angulo=45)
+        p.ranura(k * paso, CY, 44, RANURA, angulo=45)
     s = p.cerrar_croquis("Croquis_rejilla_piso")
     p.cortar(s, PISO, "Rejilla_piso", sentido=1)
 
@@ -147,15 +158,15 @@ def tapa(sw):
     """Origen en la cara inferior de la placa de la tapa; la cara superior (Y = TAPA_T)
     es la que va contra la cama al imprimir."""
     p = swlib.Pieza(sw, "caja_simon_tapa" + SUFIJO)
-    p.croquis(p.planta); p.rect_redondeado(0, 0, EXT_L, EXT_W, R_EXT)
+    p.croquis(p.planta); p.rect_redondeado(0, CY, EXT_L, EXT_W, R_EXT)
     s = p.cerrar_croquis("Croquis_tapa")
     p.extruir(s, TAPA_T, "Tapa")
 
     if not PLANO:
         # Escalón (groove): falda exterior que baja y abraza el labio de la caja
         p.croquis(p.planta)
-        p.rect_redondeado(0, 0, EXT_L, EXT_W, R_EXT, cotar=False)
-        p.rect_redondeado(0, 0, EXT_L - 2 * FALDA_W, EXT_W - 2 * FALDA_W, R_EXT - FALDA_W)
+        p.rect_redondeado(0, CY, EXT_L, EXT_W, R_EXT, cotar=False)
+        p.rect_redondeado(0, CY, EXT_L - 2 * FALDA_W, EXT_W - 2 * FALDA_W, R_EXT - FALDA_W)
         s = p.cerrar_croquis("Croquis_falda")
         p.extruir(s, FALDA_H, "Escalon_groove", sentido=-1)
 
@@ -173,7 +184,7 @@ def tapa(sw):
     p.cortar(s, None, "Ventana_LDR_y_ventilas", ambos=True)
 
     # SIMON en bajo relieve sobre la cara de arriba (queda contra la cama: sale nítido)
-    p.croquis(p.planta, TAPA_T); p.texto(-10, -6, "SIMON", 7)
+    p.croquis(p.planta, TAPA_T); p.texto(-10, CY - 6, "SIMON", 7)
     s = p.cerrar_croquis("Croquis_texto")
     p.cortar(s, 0.6, "Texto_SIMON", sentido=-1)
 
