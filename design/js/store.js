@@ -4,10 +4,12 @@
 export const DEFAULTS = {
   // Datos de EJEMPLO: el equipo debe reemplazarlos con la ficha técnica del panel real
   panel: { nombre: 'Panel monocristalino', nominal: 1.0, voc: 6.0, isc: 200, area: 110, coefT: -0.40, verificado: false },
-  sensores: { ldrFactor: 10, ldrCalibrado: false, ldrInvertir: false, lm35Offset: 0, iMin: 0.01, ina: '32V_1A' },
+  // kCarga: I_carga / I_sc con la carga de 30 Ω (de la curva I-V); alfaIsc: coeficiente de temperatura de I_sc en %/°C
+  sensores: { ldrFactor: 10, ldrCalibrado: false, ldrInvertir: false, lm35Offset: 0, iMin: 0.01, ina: '32V_1A', kCarga: 0.95, alfaIsc: 0.05 },
   conexion: { modo: 'sim', escenario: 'normal', ip: '192.168.4.1', puerto: 8080, reconectar: true },
   // mant: umbral de mantenimiento en % de la eficiencia nominal; se evalúa con G ≥ mantGmin durante mantMin minutos
-  alertas: { tMax: 45, pMin: 1, sinDatos: 5, sonido: false, mant: 75, mantGmin: 300, mantMin: 5 },
+  // suciedad: umbral del índice S = G_panel / G_LDR en % (debajo de él, panel sucio o sombreado)
+  alertas: { tMax: 45, pMin: 1, sinDatos: 5, sonido: false, mant: 75, mantGmin: 300, mantMin: 5, suciedad: 85 },
   datos: { base: 'datos_panel_solar_wifi', timestamp: true },
   ui: { equipo: 'equipo SIMON' },
 };

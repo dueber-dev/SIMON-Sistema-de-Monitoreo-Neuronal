@@ -1,7 +1,7 @@
 import { config, DEFAULTS, saveConfig } from '../store.js';
 import { live, SESSIONS, SCENARIOS } from '../sim.js';
 import { fmt } from '../charts.js';
-import { etaNominal, etaThreshold, irradiance } from '../physics.js';
+import { etaNominal, etaThreshold, irradiance, irradiancePanel, calibrateLdr } from '../physics.js';
 import { $, $$, ic, viewHeader, toast, infoBtn } from '../ui.js';
 
 let root, draft, dirty = false;
@@ -62,7 +62,11 @@ function mount(el) {
             ${num('sensores.lm35Offset', 'Ajuste del LM35', '°C', .1, 'Se suma a la temperatura medida')}
             ${num('sensores.iMin', 'Corriente mínima', 'mA', .01, 'Por debajo se considera 0 (oscuridad)')}
             ${select('sensores.ina', 'Rango del INA219', [['32V_1A', '32 V · 1 A (alta precisión)'], ['32V_2A', '32 V · 2 A'], ['16V_400mA', '16 V · 400 mA']])}
+            ${num('sensores.kCarga', 'Factor de carga k', '', .01, 'I con 30 Ω ÷ I_sc, de la curva I-V')}
+            ${num('sensores.alfaIsc', 'Coef. de temperatura de I_sc', '%/°C', .01, 'Silicio ≈ +0.05 %/°C')}
+            ${num('alertas.suciedad', 'Umbral de suciedad', '%', 1, 'Alerta si G_panel / G_LDR baja de este valor')}
           </div>
+          <button class="btn" id="cfg-cal-ldr" style="margin-top:10px">${ic('i-sun')} Calibrar LDR ahora (panel limpio)</button>
           <div style="margin-top:6px">${toggle('sensores.ldrCalibrado', 'LDR calibrado', 'Enciéndelo cuando el factor se haya medido contra una referencia (piranómetro o día despejado ≈ 1000 W/m²)')}
             ${toggle('sensores.ldrInvertir', 'Invertir lectura del LDR', 'Si el divisor está cableado al revés (más luz = menos %)')}</div>
           <div class="preview-note" id="pv-sens"></div>`)}
@@ -124,6 +128,15 @@ function mount(el) {
   $('#cfg-save', el).addEventListener('click', () => { saveConfig(clone(draft)); dirty = false; updateBar(); toast('Configuración guardada'); });
   $('#cfg-discard', el).addEventListener('click', () => { draft = clone(config); fill(); dirty = false; updateBar(); });
   $('#cfg-defaults', el).addEventListener('click', () => { draft = clone(DEFAULTS); fill(); markDirty(); toast('Valores de fábrica cargados: pulsa Guardar para aplicarlos'); });
+  // Calibra la LDR con los últimos 5 min usando el panel (recién limpio) como referencia
+  $('#cfg-cal-ldr', el).addEventListener('click', () => {
+    const cal = calibrateLdr(live.data.slice(-300), draft);
+    if (!cal) return toast('Hace falta más luz: se necesitan al menos 30 lecturas con el panel generando');
+    draft.sensores.ldrFactor = +cal.factor.toFixed(2);
+    draft.sensores.ldrCalibrado = true;
+    saveConfig(clone(draft)); dirty = false; fill(); updateBar();
+    toast(`LDR calibrada: ${fmt(cal.factor, 2)} W/m² por 1 % · R² ${fmt(cal.r2, 2)} · ${cal.n} lecturas`);
+  });
   $('#cfg-test', el).addEventListener('click', () => {
     const c = draft.conexion;
     toast(c.modo === 'sim' ? 'El simulador está activo: no hace falta conexión' : `La maqueta no tiene backend: la prueba real a ${c.ip}:${c.puerto} llega con FastAPI`);
@@ -152,7 +165,8 @@ function previews() {
   const a = draft.alertas;
   $('#pv-alert', root).innerHTML = `Revisar el panel si la eficiencia mediana de ${fmt(a.mantMin, 0)} min, con irradiancia ≥ ${fmt(a.mantGmin, 0)} W/m², baja de <b>${fmt(etaThreshold(draft), 2)} %</b> (${fmt(a.mant, 0)} % de ${fmt(etaNominal(draft), 2)} %).`;
   const g = s.ldrInvertir ? 100 - last.g : last.g;
-  $('#pv-sens', root).innerHTML = `Lectura actual: <b>${fmt(g, 1)} %</b> de luz ≈ <b>${fmt(irradiance(last.g, draft), 0)} W/m²</b>${s.ldrCalibrado ? '' : ' (estimada, sin calibrar)'} · temperatura <b>${fmt(last.t + s.lm35Offset, 1)} °C</b>`;
+  $('#pv-sens', root).innerHTML = `Lectura actual: <b>${fmt(g, 1)} %</b> de luz ≈ <b>${fmt(irradiance(last.g, draft), 0)} W/m²</b>${s.ldrCalibrado ? '' : ' (estimada, sin calibrar)'} · temperatura <b>${fmt(last.t + s.lm35Offset, 1)} °C</b>`
+    + `<br>Irradiancia por el panel: <b>${fmt(irradiancePanel(last.i, last.t, draft), 0)} W/m²</b> = 1000 × ${fmt(last.i, 1)} mA / (${fmt(s.kCarga, 2)} × ${fmt(draft.panel.isc, 0)} mA)`;
   $('#pv-datos', root).innerHTML = `Siguiente archivo: <b>${draft.datos.base}_v${SESSIONS.length + 1}.csv</b><br>Columnas: Segundos, V_Panel_V, Corriente_mA, Potencia_mW, Temperatura_C, Luz_Pct${draft.datos.timestamp ? ', timestamp' : ''}`;
 }
 

@@ -3,7 +3,7 @@ import { config } from '../store.js';
 import { NUBE, nube } from '../nube.js';
 import { lineChart, scatter, spark, ring, fmt, hhmmss } from '../charts.js';
 import { polyfit, getModel } from '../ml.js';
-import { irradiance, efficiency, etaNominal, etaThreshold, pTheory, maintenance } from '../physics.js';
+import { irradiance, irradiancePanel, soiling, efficiency, etaNominal, etaThreshold, pTheory, maintenance } from '../physics.js';
 import { $, $$, ic, tween, relDay, durFmt } from '../ui.js';
 
 let root, win = 300;
@@ -132,6 +132,8 @@ function render() {
     : `Mediana de ${fmt(A.mantMin, 0)} min con buena luz. La marca es el umbral de mantenimiento (${fmt(A.mant, 0)} %).`;
 
   // Estado del sistema: ícono + texto, nunca solo color
+  // Suciedad: compara la irradiancia que ve el panel (por su corriente) con la que ve la LDR
+  const sc = soiling(data), gPanel = irradiancePanel(last.i, last.t);
   const sim = config.conexion.modo === 'sim', esc = SCENARIOS[config.conexion.escenario] || SCENARIOS.normal;
   const seg = Math.round((Date.now() - last.ts) / 1000);
   const rows = [
@@ -144,6 +146,9 @@ function render() {
     mt.state === 'revisar' ? ['warning', 'i-wrench', 'Revisar o limpiar el panel', `η ${fmt(mt.median, 2)} % bajo el umbral de ${fmt(thr, 2)} % (últimos ${fmt(A.mantMin, 0)} min)`]
       : mt.state === 'ok' ? ['good', 'i-wrench', 'Mantenimiento al día', `η ${fmt(mt.median, 2)} % · umbral ${fmt(thr, 2)} %`]
         : ['muted', 'i-wrench', 'Mantenimiento sin evaluar', `Se evalúa con irradiancia ≥ ${fmt(A.mantGmin, 0)} W/m²`],
+    sc.state === 'sucio' ? ['warning', 'i-sun', 'Panel sucio o sombreado', `S = G_panel / G_LDR = ${fmt(sc.S, 2)} · umbral ${fmt(A.suciedad / 100, 2)}`]
+      : sc.state === 'limpio' ? ['good', 'i-sun', 'Panel limpio', `S = G_panel / G_LDR = ${fmt(sc.S, 2)} · umbral ${fmt(A.suciedad / 100, 2)}`]
+        : ['muted', 'i-sun', 'Suciedad sin evaluar', `G_panel ${fmt(gPanel, 0)} W/m² · G_LDR ${fmt(irradiance(last.g), 0)} W/m² · falta luz`],
     last.t > A.tMax ? ['warning', 'i-alert', 'Temperatura alta', `${fmt(last.t, 1)} °C · umbral ${fmt(A.tMax, 0)} °C`]
       : ['good', 'i-check', 'Temperatura en rango', `${fmt(last.t, 1)} °C · umbral ${fmt(A.tMax, 0)} °C`],
     last.p < A.pMin ? ['critical', 'i-alert', 'Sin potencia', 'Falta de irradiación o circuito abierto']
