@@ -9,14 +9,16 @@ let root, sid = 'v7', metric = 'p', page = 0, ticks = 0;
 const PAGE = 12;
 const COLS = [['v', 'Voltaje (V)', 3], ['i', 'Corriente (mA)', 2], ['t', 'Temperatura (°C)', 1], ['ldr', 'Luz LDR (%)', 1], ['g', 'Irradiancia (W/m²)', 0], ['e', 'Eficiencia (%)', 2], ['p', 'Potencia (mW)', 1]];
 
+// Con la nube la lista de sesiones cambia, por eso se arma cada vez que se muestra la vista
+const sessionOpts = () => SESSIONS.map(s => `<option value="${s.id}">Sesión ${s.id} · ${s.live ? 'en curso' : relDay(s.start) + ' ' + timeFmt(s.start)}</option>`).join('');
+
 function mount(el) {
   root = el;
-  const opts = SESSIONS.map(s => `<option value="${s.id}">Sesión ${s.id} · ${s.live ? 'en curso' : relDay(s.start) + ' ' + timeFmt(s.start)}</option>`).join('');
   const metricBtns = Object.entries(M).map(([k, m]) =>
     `<button data-metric="${k}" aria-pressed="${k === metric}"><i style="--mc:var(--c-${k})"></i>${m.label}</button>`).join('');
   el.innerHTML = viewHeader({
     eyebrow: 'Análisis', icon: 'i-analysis', title: 'Análisis de sesión', sub: 'Explora cualquier registro guardado, segundo a segundo',
-    tools: `<select class="select" id="an-sel" aria-label="Sesión">${opts}</select>
+    tools: `<select class="select" id="an-sel" aria-label="Sesión">${sessionOpts()}</select>
       <button class="btn" id="an-export">${ic('i-download')} Exportar CSV</button>`,
   }) + `
   <div class="view-body">
@@ -79,6 +81,8 @@ const data = () => sessionData(getSession(sid));
 
 function show(param) {
   if (param && SESSIONS.some(s => s.id === param)) { if (param !== sid) page = 0; sid = param; }
+  if (!SESSIONS.some(s => s.id === sid)) sid = SESSIONS[0]?.id;
+  $('#an-sel', root).innerHTML = sessionOpts();
   $('#an-sel', root).value = sid;
   render();
 }
@@ -123,7 +127,7 @@ function renderSeries() {
 function renderTable() {
   const pts = data(), pages = Math.ceil(pts.length / PAGE);
   page = Math.min(page, pages - 1);
-  const t0 = pts[0].ts, end = pts.length - page * PAGE, rows = pts.slice(Math.max(0, end - PAGE), end).reverse();
+  const t0 = pts[0]?.ts ?? 0, end = pts.length - page * PAGE, rows = pts.slice(Math.max(0, end - PAGE), end).reverse();
   const cell = (d, k, dec) => fmt(k === 'ldr' ? d.g : val(d, k), dec);
   $('#an-tbody', root).innerHTML = rows.map(d => `<tr><td>${hhmmss(d.ts)}</td><td>${Math.round((d.ts - t0) / 1000)}</td>
     ${COLS.map(([k, , dec]) => `<td>${k === 'p' ? `<b>${cell(d, k, dec)}</b>` : cell(d, k, dec)}</td>`).join('')}</tr>`).join('');
@@ -178,6 +182,6 @@ function render() {
 }
 
 // La sesión en curso se refresca cada 10 s; las guardadas no cambian
-function tick() { if (sid === 'v7' && ++ticks % 10 === 0) render(); }
+function tick() { if (getSession(sid).live && ++ticks % 10 === 0) render(); }
 
 export default { mount, show, tick, render };

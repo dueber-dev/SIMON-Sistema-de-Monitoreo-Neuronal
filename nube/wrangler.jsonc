@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "simon",
+  "main": "src/worker.js",
+  "compatibility_date": "2026-10-01",
+  // La dashboard vive en public/simon/ (la copia build.mjs desde design/)
+  "assets": { "directory": "./public", "binding": "ASSETS" },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "simon", "database_id": "8f1159e2-0e59-4ade-afa5-bbf65ec14066" }
+  ]
+  // TOKEN_ESP32 es un secreto: npx wrangler secret put TOKEN_ESP32
+}

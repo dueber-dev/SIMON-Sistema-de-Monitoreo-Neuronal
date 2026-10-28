@@ -1,5 +1,6 @@
 import { live, METRICS as M, SESSIONS, SCENARIOS, sessionData, summarize, val } from '../sim.js';
 import { config } from '../store.js';
+import { NUBE, nube } from '../nube.js';
 import { lineChart, scatter, spark, ring, fmt, hhmmss } from '../charts.js';
 import { polyfit, getModel } from '../ml.js';
 import { irradiance, efficiency, etaNominal, etaThreshold, pTheory, maintenance } from '../physics.js';
@@ -57,6 +58,7 @@ function render() {
   if (!root || root.hidden) return;
   clock();
   const data = live.data, pts = win ? data.slice(-win) : data, last = data[data.length - 1], ago = data[Math.max(0, data.length - 61)];
+  if (!last) return;
   const P = config.panel, A = config.alertas, etaN = etaNominal(), thr = etaThreshold();
 
   Object.entries(M).forEach(([k, m]) => {
@@ -131,9 +133,13 @@ function render() {
 
   // Estado del sistema: ícono + texto, nunca solo color
   const sim = config.conexion.modo === 'sim', esc = SCENARIOS[config.conexion.escenario] || SCENARIOS.normal;
+  const seg = Math.round((Date.now() - last.ts) / 1000);
   const rows = [
     live.paused ? ['warning', 'i-alert', 'Vista en pausa', 'Los datos siguen llegando; la vista está congelada']
-      : sim ? ['good', 'i-wifi', 'Simulador activo', `Escenario: ${esc.label} · 1 Hz · sin hardware`]
+      : NUBE ? (nube.error ? ['critical', 'i-alert', 'Sin conexión a la nube', 'Reintentando cada 3 s']
+        : nube.vivo ? ['good', 'i-wifi', 'ESP32 en línea', `Nube · última lectura hace ${seg} s`]
+          : ['warning', 'i-alert', 'ESP32 sin transmitir', `Se muestra la sesión v${nube.sesion?.id} · última lectura ${hhmmss(last.ts)}`])
+      : sim ?['good', 'i-wifi', 'Simulador activo', `Escenario: ${esc.label} · 1 Hz · sin hardware`]
         : ['good', 'i-wifi', 'Conexión estable', `TCP ${config.conexion.ip}:${config.conexion.puerto} · 0 tramas perdidas`],
     mt.state === 'revisar' ? ['warning', 'i-wrench', 'Revisar o limpiar el panel', `η ${fmt(mt.median, 2)} % bajo el umbral de ${fmt(thr, 2)} % (últimos ${fmt(A.mantMin, 0)} min)`]
       : mt.state === 'ok' ? ['good', 'i-wrench', 'Mantenimiento al día', `η ${fmt(mt.median, 2)} % · umbral ${fmt(thr, 2)} %`]

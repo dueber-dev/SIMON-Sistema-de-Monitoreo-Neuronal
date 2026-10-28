@@ -6,6 +6,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "5510", "--directory", "design"],
       "port": 5510
+    },
+    {
+      "name": "nube",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["-y", "wrangler@4", "dev", "-c", "nube/wrangler.jsonc", "--port", "8787"],
+      "port": 8787
     }
   ]
 }

@@ -1,16 +1,32 @@
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
+#include <HTTPClient.h>
 #include <Wire.h>
 #include <Adafruit_INA219.h>
+#include "secrets.h"   // WIFI_SSID, WIFI_PASS, API_URL, API_TOKEN (copia secrets.example.h)
 
 // --- INICIALIZAR SENSOR DIGITAL ---
 Adafruit_INA219 ina219;
 bool inaPresente = false;
 
 // --- CONFIGURACIÓN WI-FI ---
-const char* ssid = "ESP32_Panel_Solar";
-const char* password = "";
+// Primero intenta conectarse a WIFI_SSID para mandar los datos a la nube.
+// Si no lo encuentra, crea su propia red como antes (modo local con el .bat).
+const char* ssidLocal = "ESP32_Panel_Solar";
+const char* passLocal = "";
+const unsigned long ESPERA_WIFI_MS = 15000;
+bool modoNube = false;
 WiFiServer server(8080);
 WiFiClient client;
+
+// --- NUBE ---
+const int LOTE = 5;          // se manda un POST cada 5 lecturas (5 s)
+const int MAX_COLA = 60;     // si se cae internet, se guardan hasta 60 s de lecturas
+struct Lectura { unsigned long seg; float v, i, p, t, luz; };
+Lectura cola[MAX_COLA];
+int nCola = 0;
+String claveSesion;          // cada encendido es una sesión nueva en la nube
+WiFiClientSecure clienteSeguro;
 
 // --- PINES ANALÓGICOS RESTANTES ---
 const int pinTemp = 33; // Pin central (OUT) del LM35
@@ -22,6 +38,7 @@ const int DESCARTE = 8;            // se tiran las 8 más bajas y las 8 más alt
 const float ZONA_MUERTA_mA = 0.1;  // ruido del INA219 con el panel a oscuras
 
 unsigned long tiempoInicio = 0;
+unsigned long proximaLectura = 0;
 
 // Promedio recortado: ordena las muestras y promedia solo las del centro,
 // así un pico aislado (los "180 C") no mueve el resultado.
@@ -39,6 +56,55 @@ float leerADC(int pin, bool enMilivolts) {
   long suma = 0;
   for (int i = DESCARTE; i < MUESTRAS - DESCARTE; i++) suma += m[i];
   return suma / (float)(MUESTRAS - 2 * DESCARTE);
+}
+
+void iniciarWiFi() {
+  Serial.print("Conectando a "); Serial.print(WIFI_SSID);
+  WiFi.mode(WIFI_STA);
+  WiFi.setAutoReconnect(true);
+  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  unsigned long t0 = millis();
+  while (WiFi.status() != WL_CONNECTED && millis() - t0 < ESPERA_WIFI_MS) { delay(500); Serial.print("."); }
+  Serial.println();
+
+  if (WiFi.status() == WL_CONNECTED) {
+    modoNube = true;
+    Serial.print("Modo NUBE. IP en la red: "); Serial.println(WiFi.localIP());
+    Serial.println("Dashboard: https://dueber.dev/simon");
+  } else {
+    WiFi.disconnect(true);
+    WiFi.mode(WIFI_AP);
+    WiFi.softAP(ssidLocal, passLocal);
+    Serial.print("Sin internet: modo LOCAL. Red "); Serial.print(ssidLocal);
+    Serial.print(", IP: "); Serial.println(WiFi.softAPIP());
+  }
+}
+
+// Manda las lecturas pendientes. Si falla, se quedan en la cola para el siguiente intento.
+void enviarNube() {
+  if (WiFi.status() != WL_CONNECTED) return;
+  String json = "{\"clave\":\"" + claveSesion + "\",\"filas\":[";
+  for (int k = 0; k < nCola; k++) {
+    const Lectura& l = cola[k];
+    if (k) json += ",";
+    json += "[" + String(l.seg) + "," + String(l.v, 3) + "," + String(l.i, 2) + "," +
+            String(l.p, 2) + "," + String(l.t, 1) + "," + String(l.luz, 1) + "]";
+  }
+  json += "]}";
+
+  HTTPClient http;
+  http.setTimeout(4000);
+  http.begin(clienteSeguro, API_URL);
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("Authorization", String("Bearer ") + API_TOKEN);
+  int codigo = http.POST(json);
+  http.end();
+
+  if (codigo == 200) {
+    nCola = 0;
+  } else {
+    Serial.print("Error al enviar a la nube: "); Serial.println(codigo);
+  }
 }
 
 void setup() {
@@ -59,13 +125,13 @@ void setup() {
   analogSetPinAttenuation(pinTemp, ADC_6db);
   analogSetPinAttenuation(pinLDR, ADC_11db);
 
-  // Encender Wi-Fi
-  WiFi.mode(WIFI_AP);
-  WiFi.softAP(ssid, password);
-  Serial.print("Red Wi-Fi Creada. Conéctate a la IP: ");
-  Serial.println(WiFi.softAPIP());
-
+  iniciarWiFi();
   server.begin();
+
+  // El certificado no se valida: el Worker cambia de certificado y el ESP32 no tiene
+  // dónde actualizarlo. El token protege la escritura.
+  clienteSeguro.setInsecure();
+  claveSesion = String(esp_random(), HEX) + String(esp_random(), HEX);
   tiempoInicio = millis();
 }
 
@@ -73,6 +139,10 @@ void loop() {
   if (!client || !client.connected()) {
     client = server.available();
   }
+
+  // Una lectura por segundo, contando el tiempo que tarda el envío a la nube
+  if (millis() < proximaLectura) return;
+  proximaLectura = millis() + 1000;
 
   unsigned long segundos = (millis() - tiempoInicio) / 1000;
 
@@ -83,12 +153,10 @@ void loop() {
   bool okI = ina219.success();
   // V x I en vez del registro de potencia: ese tiene pasos de 0.8 mW y bajo techo marca 0
   float potencia_mW = v_panel * corriente_mA;
-  bool okP = true;
 
   // Si la lectura I2C falló, la librería devuelve 0: no se manda un dato falso.
-  if (!inaPresente || !okV || !okI || !okP) {
+  if (!inaPresente || !okV || !okI) {
     Serial.println("Error: lectura I2C del INA219 fallida, se omite este dato.");
-    delay(1000);
     return;
   }
 
@@ -118,7 +186,7 @@ void loop() {
   Serial.println("-----------------------------------------\n");
 
   // ===================================================================
-  // ENVÍO DE DATOS A PYTHON POR WI-FI
+  // ENVÍO DE DATOS A PYTHON POR WI-FI (modo local)
   // ===================================================================
   // Nuevo Formato limpio: seg, v_panel, corriente, potencia, temp, luz
   String trama = String(segundos) + "," +
@@ -132,5 +200,15 @@ void loop() {
     client.println(trama);
   }
 
-  delay(1000);
+  // ===================================================================
+  // ENVÍO A LA NUBE (dashboard en dueber.dev/simon)
+  // ===================================================================
+  if (modoNube) {
+    if (nCola == MAX_COLA) {   // cola llena: se pierde la lectura más vieja
+      memmove(cola, cola + 1, sizeof(Lectura) * (MAX_COLA - 1));
+      nCola--;
+    }
+    cola[nCola++] = { segundos, v_panel, corriente_mA, potencia_mW, temp_C, luz_pct };
+    if (nCola >= LOTE) enviarNube();
+  }
 }

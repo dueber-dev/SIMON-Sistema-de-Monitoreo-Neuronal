@@ -1,6 +1,7 @@
 // Punto de entrada: tema, fondo, router por hash y bucle en vivo a 1 Hz.
 import { prefs, config, bus } from './store.js';
 import { live, stepLive } from './sim.js';
+import { NUBE, nube, iniciarNube } from './nube.js';
 import { $, $$ } from './ui.js';
 import { INFO } from './info.js';
 import live$ from './views/live.js';
@@ -103,11 +104,18 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') { closePop()
 addEventListener('scroll', () => { closePop(); closeInfo(); }, { passive: true });
 
 /* ---------- Estado de conexión (todas las vistas) ---------- */
+const hace = ts => { const s = Math.round((Date.now() - ts) / 1000); return s < 90 ? `hace ${s} s` : s < 5400 ? `hace ${Math.round(s / 60)} min` : `hace ${Math.round(s / 3600)} h`; };
+
 export function updateStatus() {
-  const sim = config.conexion.modo === 'sim';
-  $$('.js-status').forEach(p => p.classList.toggle('is-paused', live.paused));
-  $$('.js-status-txt').forEach(b => { b.textContent = live.paused ? 'Vista en pausa' : sim ? 'Simulador activo' : 'ESP32 conectado'; });
-  $$('.js-status-meta').forEach(s => { s.textContent = ` · 1 Hz${sim ? '' : ' · ' + config.conexion.ip}`; });
+  const sim = config.conexion.modo === 'sim', last = live.data[live.data.length - 1];
+  const txt = live.paused ? 'Vista en pausa'
+    : NUBE ? (nube.error ? 'Sin conexión a la nube' : nube.vivo ? 'ESP32 en línea' : 'ESP32 sin transmitir')
+      : sim ? 'Simulador activo' : 'ESP32 conectado';
+  const meta = NUBE ? (last ? ` · última lectura ${hace(last.ts)}` : '') : ` · 1 Hz${sim ? '' : ' · ' + config.conexion.ip}`;
+  $$('.js-status').forEach(p => p.classList.toggle('is-paused', live.paused || (NUBE && !nube.vivo)));
+  $$('.js-status-txt').forEach(b => { b.textContent = txt; });
+  $$('.js-status-meta').forEach(s => { s.textContent = meta; });
+  if (NUBE && nube.sesion) $$('.js-session-id').forEach(b => { b.textContent = 'v' + nube.sesion.id; });
   $$('.js-team').forEach(b => { b.textContent = config.ui.equipo; });
   $$('.js-panel-name').forEach(b => { b.textContent = config.panel.nombre; });
 }
@@ -133,9 +141,10 @@ function route() {
 addEventListener('hashchange', route);
 
 /* ---------- Bucle a 1 Hz (como el ESP32) ---------- */
+// Con la nube, los datos los trae nube.js cada 3 s; aquí solo se redibuja
 setInterval(() => {
-  stepLive();
-  if (!live.paused) current?.tick?.();
+  if (!NUBE) stepLive();
+  if (!live.paused && live.data.length) current?.tick?.();
   updateStatus();
 }, 1000);
 
@@ -143,4 +152,19 @@ let rt;
 new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(() => current?.render?.(), 80); }).observe($('.window'));
 
 applyTheme();
+
+// En la nube, las vistas necesitan al menos una lectura: si el ESP32 nunca ha
+// mandado nada, se muestra un aviso hasta que llegue la primera.
+if (NUBE) {
+  config.conexion.modo = 'nube';
+  await iniciarNube();
+  if (!live.data.length) {
+    const aviso = document.createElement('div');
+    aviso.className = 'card glass nube-espera';
+    aviso.innerHTML = '<b>Esperando datos del ESP32</b><span>Todavía no ha llegado ninguna lectura. En cuanto el ESP32 se conecte a internet, aparecerán aquí.</span>';
+    document.body.append(aviso);
+    await new Promise(ok => { const t = setInterval(() => { if (live.data.length) { clearInterval(t); ok(); } }, 1000); });
+    aviso.remove();
+  }
+}
 route();

@@ -94,7 +94,7 @@ function renderCal() {
 }
 
 function renderCompare() {
-  const prep = id => { const s = getSession(id), d = sessionData(s), t0 = d[0].ts; return { s, d, pts: d.map(x => ({ e: (x.ts - t0) / 1000, p: x.p })), sm: summarize(d), mt: maintenance(d, config, Infinity) }; };
+  const prep = id => { const s = getSession(id), d = sessionData(s), t0 = d[0]?.ts ?? 0; return { s, d, pts: d.map(x => ({ e: (x.ts - t0) / 1000, p: x.p })), sm: summarize(d), mt: maintenance(d, config, Infinity) }; };
   const A = prep(cmpA), B = prep(cmpB);
   lineChart($('#se-cmp', root), {
     series: [

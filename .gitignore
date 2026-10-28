@@ -31,3 +31,11 @@ cad/__pycache__/
 
 # SolidWorks (archivos de bloqueo mientras un documento está abierto)
 ~$*
+
+# Nube: copia generada de la dashboard y estado local de wrangler
+nube/public/
+nube/.wrangler/
+nube/.dev.vars
+
+# Firmware: contraseña del Wi-Fi y token de la API
+secrets.h

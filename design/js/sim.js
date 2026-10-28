@@ -101,6 +101,7 @@ export const SESSIONS = [
 const cache = new Map();
 export function sessionData(s) {
   if (s.live) return live.data;
+  if (s.cargar) { s.cargar(); return s.datos || []; } // sesión real de la nube (nube.js)
   if (!cache.has(s.id)) {
     const next = createSim(s.seed * 7919, { base: s.base, scenario: () => s.escenario || 'normal' }), out = [];
     for (let k = 0; k < s.n; k++) out.push(next(s.start + k * 1000));
