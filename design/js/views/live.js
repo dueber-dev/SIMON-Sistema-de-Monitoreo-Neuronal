@@ -1,4 +1,4 @@
-import { live, METRICS as M, SESSIONS, SCENARIOS, sessionData, summarize, val } from '../sim.js';
+import { live, METRICS as M, SESSIONS, SCENARIOS, sessionData, summarize, val, decOf } from '../sim.js';
 import { config } from '../store.js';
 import { NUBE, nube } from '../nube.js';
 import { lineChart, scatter, spark, ring, fmt, hhmmss } from '../charts.js';
@@ -63,7 +63,7 @@ function render() {
 
   Object.entries(M).forEach(([k, m]) => {
     const now = val(last, k), before = val(ago, k);
-    tween($('#kv-' + k, root), now, m.dec);
+    tween($('#kv-' + k, root), now, decOf(k, now));
     spark($('#sp-' + k, root), data.slice(-60), d => val(d, k), '--c-' + k);
     const ch = before ? (now - before) / Math.abs(before) * 100 : 0;
     const dir = Math.abs(ch) < .5 ? 'flat' : ch > 0 ? 'up' : 'down';
@@ -80,7 +80,7 @@ function render() {
       { data: pts, y: d => d.p, color: '--c-p', name: 'Medida' },
       { data: pts, y: d => pTheory(d.g, d.t), color: '--c-th', name: 'Teórica' },
     ],
-    unit: 'mW', dec: 0, zero: true, aria: 'Potencia medida y teórica en el tiempo',
+    unit: 'mW', dec: decOf('p', Math.max(...pts.map(d => d.p))), zero: true, aria: 'Potencia medida y teórica en el tiempo',
   });
   const recent = data.slice(-60), sumP = recent.reduce((a, d) => a + d.p, 0), sumT = recent.reduce((a, d) => a + pTheory(d.g, d.t), 0);
   $('#ratio-th', root).textContent = sumT > 0 ? fmt(sumP / sumT * 100, 0) + ' %' : '—';
@@ -147,7 +147,7 @@ function render() {
     last.t > A.tMax ? ['warning', 'i-alert', 'Temperatura alta', `${fmt(last.t, 1)} °C · umbral ${fmt(A.tMax, 0)} °C`]
       : ['good', 'i-check', 'Temperatura en rango', `${fmt(last.t, 1)} °C · umbral ${fmt(A.tMax, 0)} °C`],
     last.p < A.pMin ? ['critical', 'i-alert', 'Sin potencia', 'Falta de irradiación o circuito abierto']
-      : ['good', 'i-check', 'Generando', `${fmt(last.p, 0)} mW · ${fmt(irradiance(last.g), 0)} W/m²`],
+      : ['good', 'i-check', 'Generando', `${fmt(last.p, decOf('p', last.p))} mW · ${fmt(irradiance(last.g), 0)} W/m²`],
   ];
   $('#status-list', root).innerHTML = rows.map(([s, i, t, d]) =>
     `<li class="row"><span class="row__icon st-${s}">${ic(i, 16)}</span><span class="row__main"><b>${t}</b><span>${d}</span></span></li>`).join('');

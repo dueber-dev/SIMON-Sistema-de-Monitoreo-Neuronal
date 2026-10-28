@@ -13,6 +13,8 @@ export const METRICS = {
   g: { label: 'Irradiancia', unit: 'W/m²', dec: 0, icon: 'i-sun',     upGood: true },
   e: { label: 'Eficiencia',  unit: '%',    dec: 1, icon: 'i-gauge',   upGood: true },
 };
+// Decimales según la magnitud: bajo techo la potencia es de centésimas de mW y con 0 decimales saldría 0
+export const decOf = (k, v) => k === 'p' ? (Math.abs(v) < 10 ? 2 : Math.abs(v) < 100 ? 1 : 0) : METRICS[k].dec;
 export const val = (d, k) => k === 'g' ? irradiance(d.g) : k === 'e' ? efficiency(d.p, d.g) : d[k];
 
 export const SCENARIOS = {

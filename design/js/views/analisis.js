@@ -1,4 +1,4 @@
-import { METRICS as M, SESSIONS, getSession, sessionData, summarize, toCSV, val } from '../sim.js';
+import { METRICS as M, SESSIONS, getSession, sessionData, summarize, toCSV, val, decOf } from '../sim.js';
 import { config } from '../store.js';
 import { lineChart, scatter, bars, histogram, fmt, hhmmss } from '../charts.js';
 import { polyfit, lstsq } from '../ml.js';
@@ -98,8 +98,8 @@ function renderSeries() {
   const pts = metric === 'e' ? all.filter(d => irradiance(d.g) >= 50) : all;
   const mean = pts.reduce((a, d) => a + val(d, metric), 0) / (pts.length || 1);
   const o = {
-    series: [{ data: pts, y: d => val(d, metric), color: '--c-' + metric, name: 'Medida' }], unit: m.unit, dec: m.dec,
-    zero: metric === 'p', ref: [{ y: mean, label: `media ${fmt(mean, m.dec)} ${m.unit}` }], aria: `${m.label} durante la sesión`,
+    series: [{ data: pts, y: d => val(d, metric), color: '--c-' + metric, name: 'Medida' }], unit: m.unit, dec: decOf(metric, mean),
+    zero: metric === 'p', ref: [{ y: mean, label: `media ${fmt(mean, decOf(metric, mean))} ${m.unit}` }], aria: `${m.label} durante la sesión`,
   };
   let legend = '';
   if (metric === 'p') {
