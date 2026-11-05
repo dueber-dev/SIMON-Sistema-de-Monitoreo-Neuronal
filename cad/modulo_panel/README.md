@@ -123,3 +123,49 @@ no termina de acotar solo.
 | `modulo_panel.py` | Medidas y construcción; se regenera con `python modulo_panel.py` |
 | `tornillo.py` | Alarga el tornillo original estirando solo su parte lisa (la rosca queda igual) |
 | `originales/` | El tornillo (`tablet_bolt.stl`) y la tuerca (`nut.stl`) que pasaste |
+| `camara_esp32.py` | Genera el soporte de la ESP32-CAM (ver abajo) |
+| `respaldo/` | Copia de `modulo_panel.SLDPRT` con tus cambios, antes de meterle la cámara |
+
+## Soporte de la ESP32-CAM
+
+Una pieza aparte (`camara_esp32.SLDPRT`, STL en `stl/camara_esp32.STL`) que se acopla al
+marco para tomar fotos del panel. En `modulo_panel.SLDPRT` aparece como los cuerpos
+`Camara_esp32` y `ESP32CAM_ref` (este último es solo referencia), insertados al final del árbol.
+
+![cámara](capturas/camara_modulo_iso.png)
+![desde el sol](capturas/camara_vista_sol.png)
+
+- **Clip.** Una "C" de 30 mm que abraza el borde libre del marco (el labio de 3 × 6.5 donde
+  entra el panel), con 0.1 por lado. Se mete deslizándola por el extremo -X, el mismo por
+  donde entra el panel: primero el panel, después el clip. Se puede correr a lo largo del borde.
+- **Brazo.** Sale por fuera del panel, del lado de la tuerca, y sube a la cuna. No toca la
+  torre, la tuerca ni la mesa de 0° a 90° (a 90° queda a 2.9 mm de la mesa).
+- **Cuna.** La ESP32-CAM-MB entra de canto por dos ranuras, como una tarjeta, hasta el tope.
+  El USB queda del lado de la bisagra, para que el cable salga por donde menos se mueve.
+- **Vista.** El lente queda a 130 mm del centro del panel y unos 50° fuera de su normal. El
+  panel ocupa 33° de la imagen a lo largo: cabe con el lente normal del OV2640 (~66°).
+- **Sombra.** El soporte gira con el marco. Con el panel apuntado al sol, la sombra de la
+  cuna cae 37 mm fuera del panel: aguanta unos **21° de error al apuntar** antes de tocarlo.
+  El clip solo cubre el labio, que ya tapa el borde del panel.
+
+### Imprimir
+
+`camara_esp32.STL` ya viene orientado: cara grande del brazo en la cama, la cuna hacia arriba
+(46.5 mm de alto). Sin soportes. 104 × 117 mm de planta, 11.6 cm³.
+
+### Medidas que faltan (están en `camara_esp32.py`)
+
+| Variable | Valor supuesto | Qué medir |
+|---|---|---|
+| `MB_W`, `MB_L` | 27 × 40.5 | Ancho y largo de la placa MB |
+| `PINES` | 3.0 | Cuánto salen los pines soldados por debajo de la MB |
+| `ALTO_LENTE` | 24 | Del fondo de la MB (+1.6 del piso) al frente del lente |
+| `LABIO_ARRIBA` | 0.6 | Que la ranura no pise los headers de la MB (están a ~0.8 del borde) |
+
+Si cambias el ángulo del marco (`Inclinar_marco`), cambia también `Inclinar_camara` al mismo valor.
+
+| Si… | Cambia |
+|---|---|
+| El clip baila sobre el labio | `HOLG` de 0.1 a 0.05 |
+| La MB entra muy dura o floja | `HOLG_MB` (0.15) |
+| Quieres la cámara más lejos o más arriba | `LENTE` (X, n); el ángulo se recalcula solo |
