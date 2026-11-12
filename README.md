@@ -1,67 +1,112 @@
-# SIMON — Sistema de Monitoreo Neuronal
+# SIMON — Sistema de Monitoreo Neuronal ☀️
 
-Monitoreo de un panel solar con ESP32: voltaje, corriente, temperatura e irradiancia, más un dashboard en tiempo real. Los datos se guardan en CSV y alimentarán un modelo de machine learning que prediga la eficiencia del panel.
+Sistema integral de telemetría y monitoreo visual para paneles solares (soporte a 50°). Mide en tiempo real voltaje, corriente, potencia, irradiancia y temperatura, capturando además inspecciones fotográficas periódicas para detectar suciedad, sombras o degradación física. Cuenta con un dashboard web en tiempo real alojado en Cloudflare Workers y soporte para predicción de eficiencia mediante Machine Learning.
 
-## Contenido
+---
 
-| Archivo | Qué es |
-|---|---|
-| `preuba_adentro_esp32normal.ino` | Firmware del ESP32. Lee el INA219 (V, I, P), un LM35 (temperatura) y un LDR (luz). Crea la red Wi‑Fi `ESP32_Panel_Solar` y envía `seg,V,mA,mW,°C,luz%` por TCP (puerto 8080) una vez por segundo. |
-| `codigo_esp32_prueba2.py` | Cliente TCP que recibe las tramas y las guarda en `datos_panel_solar_wifi_vN.csv`. |
-| `dashboard.py` | Dashboard de prueba en Streamlit (prototipo original). |
-| `design/` | Rediseño del dashboard: maqueta navegable con datos simulados (ver abajo). |
-| `docs/justificacion-dashboard.md` | Usuario final, indicadores elegidos y su justificación, lógica de las alertas y relación con la rúbrica. |
+## 🏗️ Arquitectura del Sistema
 
-## Ver la maqueta del nuevo dashboard
+El sistema consta de **dos microcontroladores independientes** que operan en paralelo sin cables entre sí:
 
-```bash
-python -m http.server 5510 --directory design
+1. **ESP32 Principal (Telemetría de Sensores):**
+   * **Firmware:** [`preuba_adentro_esp32normal.ino`](preuba_adentro_esp32normal.ino)
+   * **Sensores:**
+     * Sensor digital I2C **INA219** (mide Voltaje, Corriente y calcula Potencia).
+     * Sensor analógico de Temperatura **LM35** (en GPIO 33).
+     * Fotorresistencia **LDR** para estimación de Luz/Irradiancia (en GPIO 32).
+   * **Transmisión:** Envía paquetes cada 5 segundos al endpoint `POST /simon/api/lecturas`. Si no hay Wi-Fi, crea la red `ESP32_Panel_Solar`.
+
+2. **ESP32-CAM (Inspección Visual con Sensor OV3660 3MP):**
+   * **Firmware:** [`esp32cam_simon/esp32cam_simon.ino`](esp32cam_simon/esp32cam_simon.ino)
+   * **Sensor Óptico:** OmniVision **OV3660** (3 Megapíxeles) calibrado a 20 MHz con PSRAM habilitada.
+   * **Resolución:** VGA (640×480) en formato JPEG.
+   * **Transmisión:** Sube una fotografía cada 5 minutos a `POST /simon/api/foto`. Si no hay Wi-Fi, crea la red autónoma `SIMON_CAM` en `http://192.168.4.1`.
+
+3. **Plataforma Nube & Dashboard:**
+   * **Host:** Cloudflare Workers + base de datos SQLite D1 + Static Assets en `https://dueber.dev/simon`.
+
+---
+
+## 🔑 Archivos de Credenciales (`secrets.h`)
+
+Por seguridad, las contraseñas Wi-Fi y tokens no se suben al repositorio (están en `.gitignore`). Para compilar, debes crear **dos archivos `secrets.h`**:
+
+### 1. Para el ESP32 Normal de Sensores
+Copia `secrets.example.h` y renómbralo como **`secrets.h`** en la raíz del proyecto:
+```cpp
+#ifndef SECRETS_H
+#define SECRETS_H
+
+#define WIFI_SSID         "Nombre_De_Tu_Wifi"
+#define WIFI_PASS         "Password_De_Tu_Wifi"
+
+#define API_URL           "https://dueber.dev/simon/api/lecturas"
+#define API_FOTO_URL      "https://dueber.dev/simon/api/foto"
+#define API_TOKEN         "token"
+
+#endif
 ```
 
-Abre `http://localhost:5510`. Se tiene que servir por HTTP: abriendo el archivo directamente no cargan las imágenes ni los módulos JS.
+### 2. Para la ESP32-CAM
+Copia `esp32cam_simon/secrets.example.h` y renómbralo como **`esp32cam_simon/secrets.h`**:
+```cpp
+#ifndef SECRETS_H
+#define SECRETS_H
 
-La maqueta tiene cinco vistas, todas con datos simulados con el mismo formato que manda el ESP32:
+#define WIFI_SSID_CASA    "Wifi_Casa"
+#define WIFI_PASS_CASA    "Password_Casa"
 
-| Vista | Qué muestra |
-|---|---|
-| **En vivo** | Potencia, voltaje, corriente, temperatura, irradiancia (W/m²) y eficiencia en tiempo real; potencia medida vs teórica; eficiencia real vs nominal con umbral de mantenimiento; temperatura con umbral de alerta; estado del sistema |
-| **Análisis** | Cualquier sesión guardada: resumen, serie temporal por variable, distribución, efecto de la temperatura, tabla de datos y exportación a CSV |
-| **Predicción ML** | Eficiencia real vs predicha, métricas del modelo, importancia de variables, error y simulador de escenarios. Usa un modelo de demostración que se reemplazará por el del equipo |
-| **Sesiones** | Historial de CSV con calendario, búsqueda, comparación entre sesiones y descarga |
-| **Configuración** | Ficha técnica del panel, calibración de sensores, conexión y escenarios del simulador (normal, nublado, panel sucio, calor extremo), alertas y mantenimiento, archivos de datos y apariencia |
+#define WIFI_SSID_U       "Alumnos-Docs - Key"
+#define WIFI_PASS_U       "@lumnoK3y2025$"
 
-Cada indicador tiene un botón **i** que explica qué mide, por qué está en el dashboard, cómo se calcula y su umbral.
+#define API_FOTO_URL      "https://dueber.dev/simon/api/foto"
+#define API_URL           "https://dueber.dev/simon/api/lecturas"
+#define API_TOKEN         "token"
 
-Estructura: `design/index.html` (esqueleto y router), `design/css/`, `design/js/` (`sim.js` simulador y sesiones, `physics.js` irradiancia, eficiencias, potencia teórica y mantenimiento, `charts.js` gráficas SVG, `ml.js` modelo demo, `info.js` fichas de indicadores, `store.js` configuración) y `design/js/views/` (una vista por archivo).
-
-## Entrega
-
-La carpeta `entrega/` tiene lo necesario para revisar el proyecto sin instalar nada:
-
-| Archivo | Qué es |
-|---|---|
-| `SIMON-entrega-dashboard.html` | Documento con el recorrido por todas las vistas, la relación con la rúbrica, los indicadores y las limitaciones. Incluye el dashboard interactivo (botón «Abrir el dashboard interactivo»). |
-| `SIMON-dashboard-interactivo.html` | El dashboard completo en un solo archivo; se abre con doble clic. |
-| `capturas/` | Las capturas en WebP, para usarlas en la presentación. |
-
-Para regenerarlos después de cambiar el dashboard (requiere Node.js):
-
-```bash
-python tools/build_entrega.py
+#endif
 ```
 
-Las capturas se vuelven a tomar con `tools/capturas.mjs` (instrucciones al inicio del archivo).
+---
 
-## Usar el prototipo original
+## 💻 Requisitos y Grabación en Arduino IDE
 
-1. Conecta la laptop a la red Wi‑Fi `ESP32_Panel_Solar`.
-2. `python codigo_esp32_prueba2.py`
-3. En otra terminal: `streamlit run dashboard.py`
+### Librerías Requeridas (instalar desde el Gestor de Librerías):
+* **`Adafruit INA219`** (de Adafruit).
+* **`WiFi`**, **`HTTPClient`**, **`WiFiClientSecure`**, **`Wire`** (vienen incluidas con el paquete de tarjetas ESP32).
 
-## Hoja de ruta
+### Configuración para el ESP32 Normal:
+* **Placa:** `ESP32 Dev Module`.
+* **Upload Speed:** `115200` o `921600`.
+* **CPU Frequency:** `160MHz` o `240MHz`.
 
-- [x] Fase 1 — Maqueta visual de la vista "En vivo"
-- [x] Vistas restantes: Análisis, Predicción ML, Sesiones, Configuración
-- [ ] Backend FastAPI: puente TCP → CSV → WebSocket, con simulador
-- [ ] Frontend Astro + TypeScript + Tailwind conectado al backend
-- [ ] Modelo de predicción de eficiencia
+### Configuración para la ESP32-CAM (OV3660):
+* **Placa:** `AI Thinker ESP32-CAM` (o `ESP32 Dev Module`).
+* **CPU Frequency:** `160MHz (WiFi/BT)` *(obligatorio para estabilidad de Wi-Fi y reloj)*.
+* **PSRAM:** `Enabled` **(¡OBLIGATORIO! Sin PSRAM el sensor OV3660 desborda la memoria interna y falla con FB-OVF)**.
+* **Partition Scheme:** `Huge APP (3MB No OTA / 1MB SPIFFS)`.
+
+---
+
+## ☁️ Despliegue en la Nube (Cloudflare Workers + D1)
+
+Todo el backend, la base de datos y la interfaz web del dashboard se despliegan en un solo comando:
+
+```bash
+cd nube
+# Iniciar sesión en Cloudflare por primera vez:
+npx wrangler login
+
+# Desplegar dashboard y API a producción:
+npm run deploy
+```
+
+El script `npm run deploy` ejecuta automáticamente `node build.mjs` (que copia la interfaz de `design/` a `public/simon/`) y luego publica el Worker en producción.
+
+---
+
+## 🌐 Ver el Dashboard
+
+* **En la Nube Oficial:** [https://dueber.dev/simon](https://dueber.dev/simon)
+* **Visor de última foto:** [https://dueber.dev/simon/api/foto/ultima](https://dueber.dev/simon/api/foto/ultima)
+* **Visor local de la cámara (en la misma red):** `http://<IP_DE_LA_CAMARA>/`
+* **Visor de emergencia (sin internet en campo):** Conectarse al Wi-Fi `SIMON_CAM` y entrar a `http://192.168.4.1`.
