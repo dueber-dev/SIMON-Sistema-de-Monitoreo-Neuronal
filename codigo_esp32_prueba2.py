@@ -2,11 +2,21 @@ import socket
 import csv
 import time
 import os
+import urllib.request
 from datetime import datetime
 
 # --- CONFIGURACIÓN DE RED ---
 TCP_IP = '192.168.4.1'
 TCP_PORT = 8080
+
+# --- CONFIGURACIÓN DE CÁMARA (ESP32-CAM) ---
+CAM_IP = '192.168.4.2'
+FOTOS_DIR = 'fotos_panel_simon'
+GUARDAR_FOTOS_AUTOMATICAS = True
+INTERVALO_FOTOS_SEG = 300  # Tomar foto cada 5 minutos (300 s)
+ultimo_tiempo_foto = 0
+
+os.makedirs(FOTOS_DIR, exist_ok=True)
 
 # --- CREACIÓN AUTOMÁTICA DEL ARCHIVO CSV ---
 version = 1
@@ -70,6 +80,25 @@ while True:
                         with open(archivo_csv, mode='a', newline='') as file:
                             writer = csv.writer(file)
                             writer.writerow(datos)
+
+                        # Captura periódica de foto desde la ESP32-CAM (sin interrumpir la telemetría)
+                        ahora_ts = time.time()
+                        if GUARDAR_FOTOS_AUTOMATICAS and (ahora_ts - ultimo_tiempo_foto >= INTERVALO_FOTOS_SEG):
+                            ultimo_tiempo_foto = ahora_ts
+                            try:
+                                url_captura = f"http://{CAM_IP}/capture"
+                                req = urllib.request.Request(url_captura, headers={'User-Agent': 'Mozilla/5.0'})
+                                with urllib.request.urlopen(req, timeout=3.0) as resp:
+                                    foto_bytes = resp.read()
+                                    if foto_bytes and len(foto_bytes) > 1000:
+                                        ts_str = datetime.now().strftime('%Y%m%d_%H%M%S')
+                                        nombre_foto = f"foto_{ts_str}.jpg"
+                                        ruta_foto = os.path.join(FOTOS_DIR, nombre_foto)
+                                        with open(ruta_foto, 'wb') as img_f:
+                                            img_f.write(foto_bytes)
+                                        print(f"[{datetime.now().strftime('%H:%M:%S')}] 📸 Foto guardada en {FOTOS_DIR}/{nombre_foto} ({len(foto_bytes)//1024} KB)")
+                            except Exception:
+                                pass # Si la cámara tarda o no responde, continúa la lectura sin bloquear
                             
                     except ValueError:
                         pass # Ignora fragmentos dañados por interferencia Wi-Fi

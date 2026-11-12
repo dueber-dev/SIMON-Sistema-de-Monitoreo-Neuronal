@@ -20,3 +20,9 @@ CREATE TABLE IF NOT EXISTS lecturas (
 );
 
 CREATE INDEX IF NOT EXISTS lecturas_sesion ON lecturas (sesion, id);
+
+CREATE TABLE IF NOT EXISTS fotos (
+  id     INTEGER PRIMARY KEY AUTOINCREMENT,
+  ts     INTEGER NOT NULL,       -- ms desde 1970
+  b64    TEXT NOT NULL           -- imagen JPEG codificada en base64
+);

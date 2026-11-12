@@ -155,16 +155,18 @@ applyTheme();
 
 // En la nube, las vistas necesitan al menos una lectura: si el ESP32 nunca ha
 // mandado nada, se muestra un aviso hasta que llegue la primera.
-if (NUBE) {
-  config.conexion.modo = 'nube';
-  await iniciarNube();
-  if (!live.data.length) {
-    const aviso = document.createElement('div');
-    aviso.className = 'card glass nube-espera';
-    aviso.innerHTML = '<b>Esperando datos del ESP32</b><span>Todavía no ha llegado ninguna lectura. En cuanto el ESP32 se conecte a internet, aparecerán aquí.</span>';
-    document.body.append(aviso);
-    await new Promise(ok => { const t = setInterval(() => { if (live.data.length) { clearInterval(t); ok(); } }, 1000); });
-    aviso.remove();
+(async function init() {
+  if (NUBE) {
+    config.conexion.modo = 'nube';
+    await iniciarNube();
+    if (!live.data.length) {
+      const aviso = document.createElement('div');
+      aviso.className = 'card glass nube-espera';
+      aviso.innerHTML = '<b>Esperando datos del ESP32</b><span>Todavía no ha llegado ninguna lectura. En cuanto el ESP32 se conecte a internet, aparecerán aquí.</span>';
+      document.body.append(aviso);
+      await new Promise(ok => { const t = setInterval(() => { if (live.data.length) { clearInterval(t); ok(); } }, 1000); });
+      aviso.remove();
+    }
   }
-}
-route();
+  route();
+})();

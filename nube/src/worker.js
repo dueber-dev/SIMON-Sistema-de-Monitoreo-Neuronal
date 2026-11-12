@@ -25,8 +25,11 @@ export default {
     const ruta = url.pathname.slice('/simon/api'.length);
     try {
       if (req.method === 'POST' && ruta === '/lecturas') return await recibir(req, env);
+      if (req.method === 'POST' && ruta === '/foto') return await recibirFoto(req, env);
       if (req.method !== 'GET') return json({ error: 'método no permitido' }, 405);
       if (ruta === '/vivo') return await vivo(env, url);
+      if (ruta === '/foto/ultima') return await ultimaFoto(env);
+      if (ruta === '/fotos') return await listaFotos(env);
       if (ruta === '/sesiones') return await sesiones(env);
       let m = ruta.match(/^\/sesiones\/(\d+)$/);
       if (m) return await datosSesion(env, +m[1]);
@@ -103,4 +106,77 @@ async function csvSesion(env, id) {
   return new Response(lineas.join('\n'), {
     headers: { 'Content-Type': 'text/csv; charset=utf-8', 'Content-Disposition': `attachment; filename="datos_panel_solar_wifi_v${id}.csv"`, ...CORS },
   });
+}
+
+// POST /simon/api/foto  (Binary JPEG enviado directamente por el ESP32-CAM)
+async function recibirFoto(req, env) {
+  if (!env.TOKEN_ESP32 || req.headers.get('Authorization') !== `Bearer ${env.TOKEN_ESP32}`) {
+    return json({ error: 'token inválido' }, 401);
+  }
+  const buffer = await req.arrayBuffer();
+  if (!buffer || buffer.byteLength < 500) {
+    return json({ error: 'imagen vacía o inválida' }, 400);
+  }
+
+  // Convertir bytes a base64 para almacenar en SQLite D1
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i += 8192) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, Math.min(i + 8192, len)));
+  }
+  const b64 = btoa(binary);
+  const ahora = Date.now();
+
+  try {
+    await env.DB.prepare(`
+      CREATE TABLE IF NOT EXISTS fotos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ts INTEGER NOT NULL,
+        b64 TEXT NOT NULL
+      )
+    `).run();
+
+    await env.DB.prepare('INSERT INTO fotos (ts, b64) VALUES (?, ?)').bind(ahora, b64).run();
+    // Guardar las 50 fotos más recientes para no saturar almacenamiento
+    await env.DB.prepare('DELETE FROM fotos WHERE id NOT IN (SELECT id FROM fotos ORDER BY id DESC LIMIT 50)').run();
+
+    return json({ ok: true, ts: ahora, bytes: buffer.byteLength });
+  } catch (e) {
+    return json({ error: String(e?.message || e) }, 500);
+  }
+}
+
+// GET /simon/api/foto/ultima  -> entrega el JPEG directamente como imagen
+async function ultimaFoto(env) {
+  try {
+    const row = await env.DB.prepare('SELECT b64, ts FROM fotos ORDER BY id DESC LIMIT 1').first();
+    if (!row) return new Response('Sin fotos disponibles', { status: 404, headers: CORS });
+
+    const binary = atob(row.b64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+
+    return new Response(bytes, {
+      status: 200,
+      headers: {
+        'Content-Type': 'image/jpeg',
+        'Cache-Control': 'no-cache, no-store',
+        'X-Timestamp': String(row.ts),
+        ...CORS,
+      },
+    });
+  } catch (e) {
+    return new Response('Error: ' + String(e?.message || e), { status: 500, headers: CORS });
+  }
+}
+
+// GET /simon/api/fotos -> lista de IDs y marcas de tiempo de las fotos disponibles
+async function listaFotos(env) {
+  try {
+    const { results } = await env.DB.prepare('SELECT id, ts FROM fotos ORDER BY id DESC LIMIT 50').all();
+    return json(results || []);
+  } catch {
+    return json([]);
+  }
 }

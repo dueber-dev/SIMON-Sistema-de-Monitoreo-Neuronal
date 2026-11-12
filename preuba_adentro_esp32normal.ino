@@ -3,6 +3,8 @@
 #include <HTTPClient.h>
 #include <Wire.h>
 #include <Adafruit_INA219.h>
+#include "soc/soc.h"
+#include "soc/rtc_cntl_reg.h"
 #include "secrets.h"   // WIFI_SSID, WIFI_PASS, API_URL, API_TOKEN (copia secrets.example.h)
 
 // --- INICIALIZAR SENSOR DIGITAL ---
@@ -94,7 +96,15 @@ void enviarNube() {
 
   HTTPClient http;
   http.setTimeout(4000);
-  http.begin(clienteSeguro, API_URL);
+
+  // Soporta tanto HTTPS (nube real dueber.dev) como HTTP (local en laptop)
+  WiFiClient clientPlano;
+  if (String(API_URL).startsWith("https://")) {
+    http.begin(clienteSeguro, API_URL);
+  } else {
+    http.begin(clientPlano, API_URL);
+  }
+
   http.addHeader("Content-Type", "application/json");
   http.addHeader("Authorization", String("Bearer ") + API_TOKEN);
   int codigo = http.POST(json);
@@ -108,6 +118,7 @@ void enviarNube() {
 }
 
 void setup() {
+  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); // Evita apagados por caídas de voltaje con Power Bank o USB
   Serial.begin(115200);
   Serial.println("\n--- INICIANDO SISTEMA INA219 ---");
 

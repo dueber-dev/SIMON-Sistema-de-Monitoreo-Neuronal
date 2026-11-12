@@ -88,4 +88,11 @@ export const INFO = {
     porque: 'Si la real queda muy por debajo de la predicha, hay un problema que la física no explica.',
     como: 'Modelo de demostración (regresión polinómica). Se reemplazará por el modelo del equipo vía /api/predict.',
   }),
+  camara: () => ({
+    title: 'Cámara de inspección (ESP32-CAM)',
+    que: 'Transmisión de video en vivo enfocada al centro del panel solar desde el soporte a 50°.',
+    porque: 'Permite corroborar visualmente si una caída de eficiencia se debe a suciedad, polvo, sombras físicas o daños en las celdas.',
+    como: `Stream HTTP MJPEG emitido por la ESP32-CAM en http://${config.camara?.ip || '192.168.4.2'}:${config.camara?.puerto || 81}${config.camara?.ruta || '/stream'}.`,
+    umbral: 'Crucial ante la alerta «Revisar o limpiar el panel»: permite inspeccionar sin tener que acercarse físicamente a la instalación.',
+  }),
 };

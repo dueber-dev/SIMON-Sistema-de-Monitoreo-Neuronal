@@ -100,6 +100,33 @@
         <!-- KPIs: orden P · V · I · T · G · η -->
         <div class="kpis" id="kpis"></div>
 
+        <!-- Cámara de inspección visual (ESP32-CAM) -->
+        <article class="card glass reveal" style="--i:7.5" id="card-camara">
+          <div class="card__head">
+            <div>
+              <h2 class="card__title">Cámara de inspección visual (ESP32-CAM) <button class="info-btn" data-info="camara" aria-label="Qué es: cámara de inspección">i</button></h2>
+              <div class="legend">
+                <span><i style="--mc:var(--c-v)"></i>Soporte frontal a 50°</span>
+                <span id="cam-sub" style="color:var(--ink-2)">En vivo</span>
+                <span id="live-cam-url" style="color:var(--ink-3); font-family:monospace; font-size:11px;">http://192.168.4.2:81/stream</span>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <button class="btn btn--sm glass" id="cam-reload" aria-label="Actualizar foto" title="Actualizar foto de la cámara" style="cursor:pointer; display:inline-flex; align-items:center; gap:6px; padding:6px 12px; font-size:12.5px; border-radius:6px;">
+                <svg width="14" height="14"><use href="#i-refresh"/></svg> Actualizar foto
+              </button>
+            </div>
+          </div>
+          <div class="cam-box" style="margin-top:10px; position:relative; border-radius:10px; overflow:hidden; background:rgba(0,0,0,0.5); min-height:240px; max-height:480px; display:flex; align-items:center; justify-content:center; text-align:center;">
+            <img id="live-cam-img" alt="Transmisión ESP32-CAM" style="width:100%; max-height:460px; object-fit:contain; display:none; border-radius:8px;" />
+            <div id="live-cam-fallback" style="padding:32px 16px; color:var(--ink-2); font-size:13px;">
+              <svg width="32" height="32" style="margin:0 auto 10px; opacity:0.6; display:block;"><use href="#i-image"/></svg>
+              <b id="live-cam-status" style="font-size:14px; color:var(--ink);">Conectando a ESP32-CAM…</b>
+              <p style="margin:6px 0 0; opacity:0.75; font-size:12px;">Esperando señal de video o foto desde la cámara</p>
+            </div>
+          </div>
+        </article>
+
         <div class="row2">
           <article class="card glass reveal" style="--i:8">
             <div class="card__head">

@@ -1,6 +1,6 @@
 import { live, METRICS as M, SESSIONS, SCENARIOS, sessionData, summarize, val, decOf } from '../sim.js';
-import { config } from '../store.js';
-import { NUBE, nube } from '../nube.js';
+import { config, bus } from '../store.js';
+import { NUBE, nube, API } from '../nube.js';
 import { lineChart, scatter, spark, ring, fmt, hhmmss } from '../charts.js';
 import { polyfit, getModel } from '../ml.js';
 import { irradiance, irradiancePanel, soiling, efficiency, etaNominal, etaThreshold, pTheory, maintenance } from '../physics.js';
@@ -37,6 +37,71 @@ function mount(el) {
     pause.setAttribute('aria-label', live.paused ? 'Reanudar' : 'Pausar');
     render();
   });
+
+  const reloadBtn = $('#cam-reload', el);
+  if (reloadBtn) {
+    reloadBtn.addEventListener('click', () => {
+      const img = $('#live-cam-img', el);
+      const fallback = $('#live-cam-fallback', el);
+      const status = $('#live-cam-status', el);
+      const c = config.camara || {};
+      const url = NUBE
+        ? `${API}foto/ultima?t=${Date.now()}`
+        : `http://${c.ip || '192.168.4.2'}:${c.puerto || 81}${c.ruta || '/stream'}?t=${Date.now()}`;
+      if (img) {
+        img.style.display = 'none';
+        if (fallback) fallback.style.display = 'block';
+        if (status) status.textContent = 'Reconectando a la cámara…';
+        img.src = url;
+      }
+    });
+  }
+
+  const camImg = $('#live-cam-img', el);
+  if (camImg) {
+    camImg.addEventListener('load', () => {
+      camImg.style.display = 'block';
+      const fallback = $('#live-cam-fallback', el);
+      if (fallback) fallback.style.display = 'none';
+      const sub = $('#cam-sub', el);
+      if (sub) sub.textContent = NUBE ? 'ESP32-CAM · Nube' : 'ESP32-CAM · En línea';
+    });
+    camImg.addEventListener('error', () => {
+      camImg.style.display = 'none';
+      const fallback = $('#live-cam-fallback', el);
+      if (fallback) fallback.style.display = 'block';
+      const status = $('#live-cam-status', el);
+      if (status) status.textContent = '⚠️ Sin señal de video';
+      const sub = $('#cam-sub', el);
+      if (sub) sub.textContent = 'ESP32-CAM · Desconectada';
+    });
+  }
+
+  bus.addEventListener('config', updateCam);
+}
+
+function updateCam() {
+  if (!root) return;
+  const card = $('#card-camara', root);
+  if (!card) return;
+  const c = config.camara || {};
+  if (c.habilitada === false) {
+    card.hidden = true;
+    return;
+  }
+  card.hidden = false;
+  const img = $('#live-cam-img', root);
+  const urlTxt = $('#live-cam-url', root);
+  const sub = $('#cam-sub', root);
+  const url = NUBE
+    ? `${API}foto/ultima?t=${Date.now()}`
+    : `http://${c.ip || '192.168.4.2'}:${c.puerto || 81}${c.ruta || '/stream'}`;
+  if (urlTxt) urlTxt.textContent = NUBE ? 'Nube: ' + API + 'foto/ultima' : url;
+  if (sub && NUBE) sub.textContent = 'ESP32-CAM · Nube';
+  if (img && img.dataset.src !== url) {
+    img.dataset.src = url;
+    img.src = url;
+  }
 }
 
 function renderSessions() {
@@ -165,4 +230,4 @@ function render() {
   $('#ml-note', root).textContent = `Real: ${fmt(real, 1)} % · diferencia ${fmt(pred - real, 1)} pp`;
 }
 
-export default { mount, show: () => { renderSessions(); render(); }, tick: render, render: () => { renderSessions(); render(); } };
+export default { mount, show: () => { renderSessions(); updateCam(); render(); }, tick: render, render: () => { renderSessions(); updateCam(); render(); } };

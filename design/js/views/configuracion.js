@@ -49,7 +49,14 @@ function mount(el) {
             ${num('conexion.puerto', 'Puerto TCP', '', 1)}
           </div>
           <div style="margin-top:6px">${toggle('conexion.reconectar', 'Reconexión automática', 'Reintenta cada 2 s si se pierde el enlace')}</div>
-          <button class="btn" id="cfg-test" style="margin-top:6px">${ic('i-plug')} Probar conexión</button>`)}
+          <h3 class="card__title" style="font-size:13px;margin-top:16px"><span class="badge" style="--mc:var(--c-v)">${ic('i-image', 14)}</span> ESP32-CAM (Inspección visual)</h3>
+          <div class="form" style="margin-top:8px">
+            ${text('camara.ip', 'IP de la cámara', false, 'Red ESP32_Panel_Solar')}
+            ${num('camara.puerto', 'Puerto HTTP', '', 1, 'Por defecto: 81')}
+            ${text('camara.ruta', 'Ruta del stream', false, 'Por defecto: /stream')}
+          </div>
+          <div style="margin-top:6px">${toggle('camara.habilitada', 'Mostrar cámara en En vivo', 'Habilita la tarjeta de inspección visual en la columna lateral')}</div>
+          <button class="btn" id="cfg-test" style="margin-top:10px">${ic('i-plug')} Probar conexión</button>`)}
         ${card(5, '--c-i', 'i-folder', 'Datos', 'Archivos CSV que alimentan el modelo', `
           <div class="form">${text('datos.base', 'Nombre base del archivo', true)}</div>
           <div style="margin-top:6px">${toggle('datos.timestamp', 'Agregar columna timestamp', 'Fecha y hora ISO de cada muestra, útil para el modelo')}</div>

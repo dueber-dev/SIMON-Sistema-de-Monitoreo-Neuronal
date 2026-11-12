@@ -7,6 +7,7 @@ export const DEFAULTS = {
   // kCarga: I_carga / I_sc con la carga de 30 Ω (de la curva I-V); alfaIsc: coeficiente de temperatura de I_sc en %/°C
   sensores: { ldrFactor: 10, ldrCalibrado: false, ldrInvertir: false, lm35Offset: 0, iMin: 0.01, ina: '32V_1A', kCarga: 0.95, alfaIsc: 0.05 },
   conexion: { modo: 'sim', escenario: 'normal', ip: '192.168.4.1', puerto: 8080, reconectar: true },
+  camara: { habilitada: true, ip: '192.168.4.2', puerto: 81, ruta: '/stream' },
   // mant: umbral de mantenimiento en % de la eficiencia nominal; se evalúa con G ≥ mantGmin durante mantMin minutos
   // suciedad: umbral del índice S = G_panel / G_LDR en % (debajo de él, panel sucio o sombreado)
   alertas: { tMax: 45, pMin: 1, sinDatos: 5, sonido: false, mant: 75, mantGmin: 300, mantMin: 5, suciedad: 85 },
