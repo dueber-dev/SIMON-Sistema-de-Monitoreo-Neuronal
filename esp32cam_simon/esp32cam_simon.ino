@@ -23,7 +23,7 @@
 #include "secrets.h"
 
 // ================= CONFIGURACIÓN GENERAL =================
-const unsigned long INTERVALO_FOTOS_MS = 15000; // 15 segundos (modo prueba rápida)
+const unsigned long INTERVALO_FOTOS_MS = 210000; // 3.5 minutos (210 segundos: 3.5 * 60 * 1000 ms)
 #define CAM_AP_SSID "SIMON_CAM"
 #define CAM_AP_PASS ""  // Red abierta para fácil acceso en campo
 
