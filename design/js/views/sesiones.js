@@ -3,6 +3,7 @@ import { config } from '../store.js';
 import { lineChart, spark, fmt } from '../charts.js';
 import { maintenance } from '../physics.js';
 import { $, $$, ic, viewHeader, download, toast, relDay, durFmt, timeFmt, dayKey, dateFmt } from '../ui.js';
+import { NUBE, nube, programarSesion, cancelarSesion } from '../nube.js';
 
 let root, query = '', selDay = null, cmpA = 'v6', cmpB = 'v5', ticks = 0;
 const now = new Date();
@@ -17,6 +18,18 @@ function mount(el) {
   }) + `
   <div class="view-body">
     <div class="grid g-4" id="se-stats"></div>
+    ${NUBE ? `<article class="card glass reveal" style="--i:1">
+      <h2 class="card__title">Sesiones programadas</h2>
+      <p class="card__sub">Todo lo que llegue dentro del horario queda en una sola sesión, aunque el ESP32 se reinicie</p>
+      <form class="form plan-form" id="se-plan">
+        <div class="field"><label for="se-p-nombre">Nombre (opcional)</label><input class="input" id="se-p-nombre" maxlength="60" placeholder="Ej. Sol pleno, panel limpio"></div>
+        <div class="field"><label for="se-p-dia">Día</label><input class="input" type="date" id="se-p-dia" required></div>
+        <div class="field"><label for="se-p-ini">Desde</label><input class="input" type="time" id="se-p-ini" value="11:00" required></div>
+        <div class="field"><label for="se-p-fin">Hasta</label><input class="input" type="time" id="se-p-fin" value="13:00" required></div>
+        <div class="field plan-form__go"><button class="btn btn--accent" type="submit">${ic('i-check')} Programar</button></div>
+      </form>
+      <div id="se-plan-list" class="plan-list"></div>
+    </article>` : ''}
     <div class="grid g-12">
       <article class="card glass reveal" style="--i:2">
         <h2 class="card__title">Calendario</h2>
@@ -48,6 +61,23 @@ function mount(el) {
     </article>
   </div>`;
 
+  if (NUBE) {
+    const hoy = new Date(), dos = n => String(n).padStart(2, '0');
+    $('#se-p-dia', el).value = `${hoy.getFullYear()}-${dos(hoy.getMonth() + 1)}-${dos(hoy.getDate())}`;
+    $('#se-plan', el).addEventListener('submit', async e => {
+      e.preventDefault();
+      const dia = $('#se-p-dia', el).value, inicio = new Date(`${dia}T${$('#se-p-ini', el).value}`).getTime();
+      let fin = new Date(`${dia}T${$('#se-p-fin', el).value}`).getTime();
+      if (fin <= inicio) fin += 86400000;   // «de 22:00 a 02:00» termina al día siguiente
+      const btn = e.submitter; btn.disabled = true;
+      try {
+        await programarSesion({ nombre: $('#se-p-nombre', el).value, inicio, fin });
+        $('#se-p-nombre', el).value = '';
+        toast(`Sesión programada de ${timeFmt(inicio)} a ${timeFmt(fin)}`);
+      } catch (err) { toast(err.message); }
+      btn.disabled = false;
+    });
+  }
   $('#se-q', el).addEventListener('input', e => { query = e.target.value.trim().toLowerCase(); filter(); });
   $('#se-clear', el).addEventListener('click', () => { query = ''; selDay = null; $('#se-q', el).value = ''; renderCal(); filter(); });
   $('#se-a', el).addEventListener('change', e => { cmpA = e.target.value; renderCompare(); });
@@ -57,6 +87,8 @@ function mount(el) {
     if (dl) { const s = getSession(dl.dataset.dl); download(s.file, toCSV(sessionData(s), config.datos.timestamp)); toast(`Descargando ${s.file}`); }
     const day = e.target.closest('[data-day]');
     if (day) { selDay = selDay === day.dataset.day ? null : day.dataset.day; renderCal(); filter(); }
+    const cx = e.target.closest('[data-cancel]');
+    if (cx) { cx.disabled = true; cancelarSesion(cx.dataset.cancel).then(() => toast('Sesión programada cancelada'), err => { cx.disabled = false; toast(err.message); }); }
     const nav = e.target.closest('[data-cal]');
     if (nav) { calM += +nav.dataset.cal; if (calM < 0) { calM = 11; calY--; } if (calM > 11) { calM = 0; calY++; } renderCal(); }
   });
@@ -152,9 +184,27 @@ function filter() {
   $('#se-count', root).textContent = selDay ? `${shown} de ${SESSIONS.length} · ${dateFmt(new Date(y, m, d))}` : `${shown} de ${SESSIONS.length} sesiones`;
 }
 
+// Programadas que no han terminado; las terminadas ya aparecen en la lista con su nombre
+function renderPlan() {
+  const box = $('#se-plan-list', root);
+  if (!box) return;
+  const ahora = Date.now(), vigentes = nube.programadas.filter(s => s.plan.fin > ahora);
+  box.innerHTML = vigentes.length ? vigentes.map(s => {
+    const activa = s.plan.inicio <= ahora;
+    const estado = activa ? (s.vivo ? '<span class="tag tag--live">Midiendo</span>' : '<span class="tag tag--warn">Activa, sin datos ahora</span>') : '<span class="tag">Pendiente</span>';
+    return `<div class="plan-row">
+      <span class="row__icon">${ic('i-sessions', 16, 'style="color:var(--ink-2)"')}</span>
+      <span class="srow__name"><b>${s.nombre ? esc(s.nombre) : 'Sesión v' + s.id} ${estado}</b>
+        <span>${relDay(s.plan.inicio)} · ${timeFmt(s.plan.inicio)} a ${timeFmt(s.plan.fin)}${s.n ? ` · ${s.n.toLocaleString('es')} muestras` : ''}</span></span>
+      ${s.n ? `<a class="btn" href="#/analisis/v${s.id}">${ic('i-analysis')} Ver</a>` : `<button class="btn" data-cancel="${s.id}">Cancelar</button>`}
+    </div>`;
+  }).join('') : '<p class="empty">No hay sesiones programadas. Si no programas una, cada encendido del ESP32 crea su propia sesión.</p>';
+}
+const esc = t => t.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
 function render() {
   if (!root || root.hidden) return;
-  renderStats(); renderCal(); renderCompare(); renderList();
+  renderStats(); renderPlan(); renderCal(); renderCompare(); renderList();
 }
 
-export default { mount, show: render, render, tick: () => { if (root && !root.hidden && ++ticks % 10 === 0) { renderStats(); renderList(); } } };
+export default { mount, show: render, render, tick: () => { if (root && !root.hidden && ++ticks % 10 === 0) { renderStats(); renderPlan(); renderList(); } } };

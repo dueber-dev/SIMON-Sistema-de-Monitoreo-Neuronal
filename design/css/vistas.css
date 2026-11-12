@@ -127,6 +127,20 @@
 .srow__actions .btn { height: 30px; padding: 0 10px; font-size: 12px; border-radius: 10px; }
 .check { width: 18px; height: 18px; accent-color: var(--c-p); cursor: pointer; margin: 0; }
 .srow.is-hidden { display: none; }
+/* Sesiones programadas */
+.plan-form { grid-template-columns: minmax(0,1.6fr) repeat(3, minmax(0,1fr)) auto; align-items: end; }
+.plan-form .input { width: 100%; }
+.plan-list { margin-top: 14px; display: grid; gap: 8px; }
+.plan-list .empty { padding: 12px; }
+.plan-row { display: grid; grid-template-columns: 22px minmax(0,1fr) auto; align-items: center; gap: 14px; padding: 10px 14px; border-radius: 16px; background: var(--chip); }
+.plan-row .srow__name { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.plan-row .srow__name b { flex-wrap: wrap; row-gap: 4px; }
+.plan-row .tag { white-space: nowrap; }
+@media (max-width: 760px) {
+  .plan-form { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .plan-form > .field:first-child, .plan-form__go { grid-column: 1 / -1; }
+  .plan-form__go .btn { width: 100%; justify-content: center; }
+}
 .empty { padding: 28px; text-align: center; color: var(--ink-3); font-size: 13px; }
 .tag--warn { background: color-mix(in srgb, var(--warning) 22%, transparent); color: var(--ink); }
 
