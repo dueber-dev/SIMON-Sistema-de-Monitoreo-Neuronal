@@ -1,6 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "simon",
+  "account_id": "50d70b23023569465485ad67bfc66c90",
   "main": "src/worker.js",
   "compatibility_date": "2026-10-01",
   // La dashboard vive en public/simon/ (la copia build.mjs desde design/)
