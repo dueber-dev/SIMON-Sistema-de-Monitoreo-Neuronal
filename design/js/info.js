@@ -67,7 +67,7 @@ export const INFO = {
     title: 'Potencia medida vs teórica',
     que: 'Lo que el panel debería entregar según su ficha técnica, comparado con lo que entrega.',
     porque: 'Contrasta la medición con el cálculo teórico. La diferencia son pérdidas (cableado, suciedad, error del LDR).',
-    como: `P_teórica = P_nom · G/1000 · [1 + γ · (T − 25)], con P_nom = ${n(config.panel.nominal)} W y γ = ${n(config.panel.coefT, 2)} %/°C.`,
+    como: `P_teórica = P_nom · G/1000 · [1 + γ · (T − 25)], con P_nom = ${n(config.panel.nominal)} W, γ = ${n(config.panel.coefT, 2)} %/°C y G = irradiancia calculada con la corriente del panel. Supone que el panel trabaja en su punto de máxima potencia; con la carga fija de 30 Ω entrega menos, así que es un techo teórico.`,
     umbral: 'Una brecha mayor al 25 % sostenida coincide con la alerta de mantenimiento.',
   }),
   energia: () => ({

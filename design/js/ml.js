@@ -6,6 +6,7 @@ export { efficiency };
 
 // Mínimos cuadrados por ecuaciones normales + eliminación gaussiana con pivoteo
 export function lstsq(rows, y) {
+  if (!rows.length) return [];
   const k = rows[0].length, A = Array.from({ length: k }, () => new Array(k).fill(0)), b = new Array(k).fill(0);
   rows.forEach((r, n) => { for (let p = 0; p < k; p++) { b[p] += r[p] * y[n]; for (let q = 0; q < k; q++) A[p][q] += r[p] * r[q]; } });
   for (let p = 0; p < k; p++) A[p][p] += 1e-9;

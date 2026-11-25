@@ -2,7 +2,7 @@ import { METRICS as M, SESSIONS, getSession, sessionData, summarize, toCSV, val,
 import { config } from '../store.js';
 import { lineChart, scatter, bars, histogram, fmt, hhmmss } from '../charts.js';
 import { polyfit, lstsq } from '../ml.js';
-import { irradiance, efficiency, etaNominal, etaThreshold, pTheory, maintenance } from '../physics.js';
+import { irradiance, gPanel, efficiency, etaNominal, etaThreshold, pTheory, maintenance } from '../physics.js';
 import { $, $$, ic, viewHeader, download, relDay, durFmt, timeFmt, toast, infoBtn } from '../ui.js';
 
 let root, sid = 'v7', metric = 'p', page = 0, ticks = 0;
@@ -103,7 +103,7 @@ function renderSeries() {
   };
   let legend = '';
   if (metric === 'p') {
-    o.series.push({ data: pts, y: d => pTheory(d.g, d.t), color: '--c-th', name: 'Teórica' });
+    o.series.push({ data: pts, y: d => pTheory(gPanel(d), d.t), color: '--c-th', name: 'Teórica' });
     o.ref = [];
     legend = `<span><i style="--mc:var(--c-p)"></i>Medida</span><span><i style="--mc:var(--c-th)"></i>Teórica (ficha técnica)</span>`;
   }
@@ -149,7 +149,7 @@ function render() {
     stat('Eficiencia', '--c-e', mt.median ? fmt(mt.median, 2) : '—', '%', `nominal ${fmt(etaN, 1)} % · mediana con buena luz`, infoBtn('e', 'eficiencia')),
     stat('Rendimiento vs nominal', '--c-e', mt.ratio ? fmt(mt.ratio, 0) : '—', '%', `${mtNote} · umbral ${fmt(A.mant, 0)} %`, infoBtn('mant', 'mantenimiento')),
     stat('Temperatura máx.', '--c-t', fmt(sm.maxT, 1), '°C', hot ? `<span class="st-warning">▲</span> ${durFmt(hot)} sobre ${fmt(A.tMax, 0)} °C` : `nunca sobre ${fmt(A.tMax, 0)} °C`, infoBtn('t', 'temperatura')),
-    stat('Irradiancia media', '--c-g', fmt(irradiance(sm.meanG), 0), 'W/m²', `estimada · LDR ${fmt(sm.meanG, 0)} %`, infoBtn('g', 'irradiancia')),
+    stat('Irradiancia media', '--c-g', fmt(pts.reduce((a, d) => a + gPanel(d), 0) / (pts.length || 1), 0), 'W/m²', `calculada con la corriente del panel · pico ${fmt(Math.max(0, ...pts.map(d => gPanel(d))), 0)} W/m²`, infoBtn('g', 'irradiancia')),
   ].join('');
 
   renderSeries();
@@ -160,7 +160,7 @@ function render() {
     bins: hist.map(b => ({ label: fmt(b.lo, 0), value: b.count, tip: `${fmt(b.lo, 0)}–${fmt(b.hi, 0)} mW<b class="tnum">${b.count.toLocaleString('es')} s · ${fmt(b.count / pts.length * 100, 1)} %</b>` })),
   });
 
-  const G = d => irradiance(d.g);
+  const G = d => gPanel(d);
   const fit = polyfit(pts.map(d => G(d) / 1000), pts.map(d => d.p), 2), f = g => fit.f(g / 1000);
   $('#an-pg-sub', root).textContent = `mW vs W/m² · cada punto = 1 s · ajuste cuadrático · R² ${fmt(fit.r2, 2)}`;
   scatter($('#an-pg', root), {

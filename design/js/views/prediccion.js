@@ -233,12 +233,12 @@ function renderDegradacion() {
 
 function renderWhatIf() {
   const mdl = getModel(), g = wiG / config.sensores.ldrFactor; // W/m² → % del LDR, como lo vería el sensor
-  const effTh = t => pTheory(g, t) / 1000 / (wiG * areaM2()) * 100;
+  const effTh = t => pTheory(wiG, t) / 1000 / (wiG * areaM2()) * 100;
   $('#wi-g-v', root).textContent = `${wiG} W/m²`;
   $('#wi-t-v', root).textContent = `${wiT} °C`;
   $('#wi-p', root).textContent = fmt(mdl.predictP(g, wiT), 0) + ' mW';
   $('#wi-e', root).textContent = fmt(mdl.predictEff(g, wiT), 2) + ' %';
-  $('#wi-pt', root).textContent = fmt(pTheory(g, wiT), 0) + ' mW';
+  $('#wi-pt', root).textContent = fmt(pTheory(wiG, wiT), 0) + ' mW';
   $('#wi-et', root).textContent = fmt(effTh(wiT), 2) + ' %';
   const curve = []; for (let t = 15; t <= 70; t++) curve.push({ t, e: mdl.predictEff(g, t), th: effTh(t) });
   lineChart($('#ml-curve', root), {

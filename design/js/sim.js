@@ -1,7 +1,7 @@
 // Simulador: produce los mismos 6 campos que manda el ESP32
 // (segundos, V, mA, mW, °C, luz %) a 1 Hz, más el timestamp.
 import { config } from './store.js';
-import { irradiance, efficiency } from './physics.js';
+import { irradiance, efficiency, irradiancePanel } from './physics.js';
 
 // Indicadores que se muestran. «g» se guarda como % del LDR pero se muestra en W/m²;
 // «e» (eficiencia) se calcula. Usa val(d, k) para leer cualquiera de ellos.
@@ -15,7 +15,7 @@ export const METRICS = {
 };
 // Decimales según la magnitud: bajo techo la potencia es de centésimas de mW y con 0 decimales saldría 0
 export const decOf = (k, v) => k === 'p' ? (Math.abs(v) < 10 ? 2 : Math.abs(v) < 100 ? 1 : 0) : METRICS[k].dec;
-export const val = (d, k) => k === 'g' ? irradiance(d.g) : k === 'e' ? efficiency(d.p, d.g) : d[k];
+export const val = (d, k) => k === 'g' ? irradiancePanel(d.i, d.t) : k === 'e' ? efficiency(d.p, d.g) : d[k];
 
 export const SCENARIOS = {
   normal:  { label: 'Normal',        light: 1,   soil: 1,   heat: 0 },
@@ -86,18 +86,20 @@ export function stepLive() {
 }
 
 /* ---------- Sesiones guardadas (CSV) ---------- */
-const DAY = 864e5;
-const today = new Date(); today.setHours(0, 0, 0, 0);
-const at = (daysAgo, h, m) => today.getTime() - daysAgo * DAY + (h * 60 + m) * 60e3;
+const fechaNov = (d, h, m) => new Date(2026, 10, d, h, m).getTime();
 
 export const SESSIONS = [
-  { id: 'v7', live: true, estado: 'en vivo' },
-  { id: 'v6', start: at(1, 15, 10), n: 2518, base: 74, seed: 6, estado: 'completa' },
-  { id: 'v5', start: at(4, 10, 20), n: 3912, base: 84, seed: 5, estado: 'completa' },
-  { id: 'v4', start: at(5, 14, 5),  n: 1690, base: 62, seed: 4, estado: 'interrumpida' },
-  { id: 'v3', start: at(7, 11, 30), n: 3301, base: 88, seed: 3, estado: 'completa', escenario: 'sucio' },
-  { id: 'v2', start: at(8, 16, 45), n: 1080, base: 80, seed: 2, estado: 'completa', escenario: 'nublado' },
-  { id: 'v1', start: at(11, 12, 0), n: 540,  base: 70, seed: 1, estado: 'completa', nota: 'Prueba inicial' },
+  { id: 'v57', live: true, estado: 'en vivo' },
+  { id: 'v56', start: fechaNov(25, 8, 12), n: 1650, base: 78, seed: 56, estado: 'completa', nota: 'Prueba matutina' },
+  { id: 'v52', start: fechaNov(24, 11, 30), n: 2808, base: 85, seed: 52, estado: 'completa', nota: 'T · Despejado' },
+  { id: 'v49', start: fechaNov(22, 10, 0), n: 2160, base: 82, seed: 49, estado: 'completa', nota: 'Corta · Despejado' },
+  { id: 'v46', start: fechaNov(20, 8, 0), n: 2856, base: 84, seed: 46, estado: 'completa', nota: 'M · Despejado' },
+  { id: 'v43', start: fechaNov(18, 11, 30), n: 2856, base: 86, seed: 43, estado: 'completa', escenario: 'sombra', nota: 'T · Sombra parcial' },
+  { id: 'v40', start: fechaNov(16, 8, 0), n: 2868, base: 80, seed: 40, estado: 'completa', escenario: 'nublado', nota: 'M · Parcial' },
+  { id: 'v37', start: fechaNov(14, 8, 0), n: 2856, base: 84, seed: 37, estado: 'completa', escenario: 'sucio', nota: 'M · Polvo ligero' },
+  { id: 'v35', start: fechaNov(13, 7, 0), n: 13568, base: 85, seed: 35, estado: 'completa', nota: 'Sol pleno y nubes' },
+  { id: 'v24', start: fechaNov(12, 8, 0), n: 2880, base: 85, seed: 24, estado: 'completa', nota: 'M · Despejado' },
+  { id: 'v21', start: fechaNov(11, 8, 0), n: 2880, base: 80, seed: 21, estado: 'completa', nota: 'M · Parcial' },
 ].map(s => ({ ...s, file: `datos_panel_solar_wifi_${s.id}.csv` }));
 
 const cache = new Map();

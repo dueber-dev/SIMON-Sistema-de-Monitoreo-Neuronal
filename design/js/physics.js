@@ -87,9 +87,12 @@ export function efficiency(pmW, g, cfg = config) {
   return G > 1 && A > 0 ? (pmW / 1000) / (G * A) * 100 : 0;
 }
 
-// Potencia teórica (mW): P_nom · G / 1000 · [1 + γ · (T − 25)], con γ en %/°C
-export const pTheory = (g, t, cfg = config) =>
-  Math.max(0, cfg.panel.nominal * 1000 * irradiance(g, cfg) / 1000 * (1 + cfg.panel.coefT / 100 * (t - 25)));
+// Potencia teórica (mW): P_nom · G / 1000 · [1 + γ · (T − 25)], con γ en %/°C y G en W/m²
+export const pTheory = (G, t, cfg = config) =>
+  Math.max(0, cfg.panel.nominal * 1000 * G / 1000 * (1 + cfg.panel.coefT / 100 * (t - 25)));
+
+// Irradiancia que se muestra en toda la dashboard: la del propio panel (la LDR se satura ~650 W/m²)
+export const gPanel = (d, cfg = config) => irradiancePanel(d.i, d.t, cfg);
 
 // Umbral de mantenimiento expresado como eficiencia (% de la nominal)
 export const etaThreshold = (cfg = config) => etaNominal(cfg) * cfg.alertas.mant / 100;
