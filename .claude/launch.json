@@ -4,14 +4,37 @@
     {
       "name": "maqueta",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "5510", "--directory", "design"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "5510",
+        "--directory",
+        "design"
+      ],
       "port": 5510
     },
     {
       "name": "nube",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["-y", "wrangler@4", "dev", "-c", "nube/wrangler.jsonc", "--port", "8787"],
+      "runtimeArgs": [
+        "-y",
+        "wrangler@4",
+        "dev",
+        "-c",
+        "nube/wrangler.jsonc",
+        "--port",
+        "8787"
+      ],
       "port": 8787
+    },
+    {
+      "name": "modelo-local",
+      "runtimeExecutable": "python",
+      "runtimeArgs": [
+        "ml/servidor_local.py",
+        "--no-abrir"
+      ],
+      "port": 8790
     }
   ]
 }

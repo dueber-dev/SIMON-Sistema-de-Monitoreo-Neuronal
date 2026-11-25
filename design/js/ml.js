@@ -56,8 +56,12 @@ export function train(pts) {
   return model;
 }
 
+// Mientras no lleguen lecturas no hay con qué entrenar: modelo vacío para que las vistas no se caigan
+const VACIO = { beta: [0, 0, 0, 0], predictP: () => 0, predictEff: () => 0, metrics: { r2: 0, mae: 0, rmse: 0, n: 0 }, importance: [], trainedAt: 0 };
 export function getModel() {
-  return model || train(live.data.slice(-1800));
+  if (model) return model;
+  const pts = live.data.slice(-1800);
+  return pts.length >= 10 ? train(pts) : VACIO;
 }
 
 // ---- Modelo entrenado (gradient boosting de ml/entrenar_modelo.py) que corre en el Worker de Cloudflare.
@@ -65,7 +69,34 @@ export function getModel() {
 import { API } from './nube.js';
 const predNube = new Map();          // ts -> mW predichos
 let enCurso = false;
-export const nubeModelo = { info: null, error: false };
+// «local»: la dashboard se abrió desde ml/servidor_local.py y el modelo corre en esta computadora
+export const nubeModelo = { info: null, error: false, local: null };
+const ruta = () => nubeModelo.local?.listo ? 'local/predecir' : 'predecir';
+export async function revisarLocal() {
+  if (!API || !/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) return null;
+  try {
+    const r = await fetch(API + 'local/estado', { cache: 'no-store' });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const antes = nubeModelo.local?.entrenado;
+    nubeModelo.local = j;
+    if (j.listo && j.entrenado !== antes) predNube.clear();   // modelo nuevo: se vuelve a predecir todo
+    return j;
+  } catch { return null; }
+}
+export async function reentrenarLocal() {
+  const r = await fetch(API + 'local/reentrenar', { method: 'POST' });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || 'API ' + r.status);
+  nubeModelo.local = j; predNube.clear();
+  return j;
+}
+export async function pronostico(dias = 3) {
+  const r = await fetch(API + 'local/pronostico?dias=' + dias, { cache: 'no-store' });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || 'API ' + r.status);
+  return j;
+}
 export const pNube = d => predNube.get(d.ts);
 export const effNube = d => { const p = predNube.get(d.ts); return p === undefined ? undefined : efficiency(p, d.g); };
 export async function pedirPredicciones(pts) {
@@ -74,7 +105,7 @@ export async function pedirPredicciones(pts) {
   if (!faltan.length) return false;
   enCurso = true;
   try {
-    const r = await fetch(API + 'predecir', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    const r = await fetch(API + ruta(), { method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ filas: faltan.map(d => [d.ts, d.g, d.t]) }) });
     if (!r.ok) throw new Error('API ' + r.status);
     const j = await r.json();

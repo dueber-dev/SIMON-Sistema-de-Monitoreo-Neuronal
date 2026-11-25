@@ -39,7 +39,7 @@ export const INFO = {
     title: 'Irradiancia',
     que: 'Potencia de la luz solar por metro cuadrado (W/m²) que llega al panel.',
     porque: 'Es la entrada del sistema. Sin ella no se puede calcular la eficiencia ni saber si una baja de potencia es por falta de sol.',
-    como: `Estimada desde el LDR: % de luz × ${n(config.sensores.ldrFactor, 0)} W/m² por cada 1 %. ${config.sensores.ldrCalibrado ? 'Factor calibrado por el equipo.' : 'El factor aún no está calibrado: el valor es aproximado.'}`,
+    como: `Calculada con la corriente del propio panel (el panel como celda de referencia): G ≈ 1000 · I / (k · I_sc · [1 + α·(T − 25)]). La LDR se satura cerca de 650 W/m², así que ya no se usa para mostrar la irradiancia; queda como referencia limpia para detectar suciedad (S = G_panel / G_LDR) y como entrada del modelo.`,
     umbral: `Por debajo de ${n(config.alertas.mantGmin, 0)} W/m² no se evalúa el mantenimiento (poca luz da lecturas poco confiables).`,
   }),
   e: () => ({

@@ -2,7 +2,7 @@ import { live, METRICS as M, SESSIONS, SCENARIOS, sessionData, summarize, val, d
 import { config, bus } from '../store.js';
 import { NUBE, nube, API } from '../nube.js';
 import { lineChart, scatter, spark, ring, fmt, hhmmss } from '../charts.js';
-import { polyfit, getModel, effNube, pedirPredicciones } from '../ml.js';
+import { polyfit, getModel, effNube, pedirPredicciones, nubeModelo, revisarLocal } from '../ml.js';
 import { irradiance, irradiancePanel, soiling, efficiency, etaNominal, etaThreshold, pTheory, maintenance } from '../physics.js';
 import { $, $$, ic, tween, relDay, durFmt } from '../ui.js';
 
@@ -17,7 +17,7 @@ function mount(el) {
     a.className = 'card glass kpi reveal' + (k === 'p' ? ' kpi--hero' : '');
     a.style.setProperty('--i', idx + 2);
     a.innerHTML = `
-      <div class="kpi__top"><span class="kpi__label">${m.label} <button class="info-btn" data-info="${k}" aria-label="Qué es: ${m.label.toLowerCase()}">i</button></span>
+      <div class="kpi__top"><span class="kpi__label">${k === 'g' ? 'Irradiancia (panel)' : m.label} <button class="info-btn" data-info="${k}" aria-label="Qué es: ${m.label.toLowerCase()}">i</button></span>
         <span class="badge" style="--mc:var(--c-${k})"><svg><use href="#${m.icon}"/></svg></span></div>
       <div class="kpi__spark" id="sp-${k}"></div>
       <div class="kpi__value"><span class="kpi__num" id="kv-${k}">—</span><span class="kpi__unit">${m.unit}</span></div>
@@ -74,6 +74,9 @@ function mount(el) {
   }
 
   bus.addEventListener('config', updateCam);
+  // Abierta desde ml/servidor_local.py: usar el modelo que corre en esta computadora
+  const sondeo = () => revisarLocal().then(j => { if (j && !j.listo) setTimeout(sondeo, 3000); });
+  sondeo();
 }
 
 function updateCam() {
@@ -118,10 +121,12 @@ function render() {
   if (!last) return;
   const P = config.panel, A = config.alertas, etaN = etaNominal(), thr = etaThreshold();
 
+  // La LDR se satura (~650 W/m²): la irradiancia que se muestra sale de la corriente del panel
+  const vk = (d, k) => k === 'g' ? irradiancePanel(d.i, d.t) : val(d, k);
   Object.entries(M).forEach(([k, m]) => {
-    const now = val(last, k), before = val(ago, k);
+    const now = vk(last, k), before = vk(ago, k);
     tween($('#kv-' + k, root), now, decOf(k, now));
-    spark($('#sp-' + k, root), data.slice(-60), d => val(d, k), '--c-' + k);
+    spark($('#sp-' + k, root), data.slice(-60), d => vk(d, k), '--c-' + k);
     const ch = before ? (now - before) / Math.abs(before) * 100 : 0;
     const dir = Math.abs(ch) < .5 ? 'flat' : ch > 0 ? 'up' : 'down';
     const good = dir === 'flat' ? null : (dir === 'up') === m.upGood;
@@ -219,7 +224,8 @@ function render() {
   const enNube = effNube(last), pred = enNube ?? getModel().predictEff(last.g, last.t), real = efficiency(last.p, last.g);
   $('#ml-fig', root).innerHTML = `${fmt(pred, 1)} <small style="font-size:16px">%</small>`;
   $('#ml-fig', root).style.color = 'var(--ink)';
-  $('#ml-note', root).textContent = `Real: ${fmt(real, 1)} % · diferencia ${fmt(pred - real, 1)} pp · ${enNube !== undefined ? 'modelo en la nube' : 'ajuste local'}`;
+  $('#ml-note', root).textContent = `Real: ${fmt(real, 1)} % · diferencia ${fmt(pred - real, 1)} pp · ${enNube === undefined ? 'ajuste local' : nubeModelo.local?.listo ? 'modelo en tu computadora' : 'modelo en la nube'}`;
+  $('#ml-src', root).textContent = nubeModelo.local?.listo ? 'Gradient boosting · tu computadora' : 'Gradient boosting · Cloudflare Worker';
 }
 
 export default { mount, show: () => { renderSessions(); updateCam(); render(); }, tick: render, render: () => { renderSessions(); updateCam(); render(); } };

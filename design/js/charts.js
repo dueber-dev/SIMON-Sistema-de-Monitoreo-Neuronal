@@ -73,10 +73,14 @@ function xTicks(kind, x0, x1, iw, fmtNum) {
     return out;
   }
   const span = (x1 - x0) / (kind === 'time' ? 1000 : 1);
-  const steps = [5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600, 7200, 10800];
-  const st = (steps.find(s => span / s <= maxT) || 10800) * (kind === 'time' ? 1000 : 1);
-  for (let v = Math.ceil(x0 / st) * st; v <= x1; v += st) {
-    out.push({ v, label: kind === 'time' ? (st < 60000 ? hhmmss(v) : hhmm(v)) : elapsed(v) });
+  const steps = [5, 10, 15, 30, 60, 120, 300, 600, 900, 1800, 3600, 7200, 10800, 21600, 43200, 86400, 172800];
+  const st = (steps.find(s => span / s <= maxT) || 172800) * (kind === 'time' ? 1000 : 1);
+  // Pasos de horas o días: alineados a la medianoche local, no a la de UTC
+  const off = kind === 'time' && st >= 3600000 ? new Date(x0).getTimezoneOffset() * 60000 : 0;
+  const dia = v => new Date(v).toLocaleDateString('es', { weekday: 'short', day: 'numeric' });
+  for (let v = Math.ceil((x0 - off) / st) * st + off; v <= x1; v += st) {
+    const label = kind !== 'time' ? elapsed(v) : st >= 86400000 ? dia(v) : st >= 21600000 ? (new Date(v).getHours() === 0 ? dia(v) : hhmm(v)) : st < 60000 ? hhmmss(v) : hhmm(v);
+    out.push({ v, label });
   }
   return out;
 }
