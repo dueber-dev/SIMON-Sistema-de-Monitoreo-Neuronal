@@ -84,9 +84,9 @@ export const INFO = {
   }),
   ml: () => ({
     title: 'Eficiencia predicha',
-    que: 'Eficiencia que el modelo espera según la irradiancia y la temperatura.',
+    que: 'Eficiencia que el panel limpio debería tener con la luz, la temperatura y la hora de este momento.',
     porque: 'Si la real queda muy por debajo de la predicha, hay un problema que la física no explica.',
-    como: 'Modelo de demostración (regresión polinómica). Se reemplazará por el modelo del equipo vía /api/predict.',
+    como: 'Gradient boosting (300 árboles) entrenado con ml/entrenar_modelo.py. Corre en el Worker de Cloudflare (/simon/api/predecir): predice la potencia en mW y se divide entre la irradiancia × área para obtener la eficiencia.',
   }),
   camara: () => ({
     title: 'Cámara de inspección (ESP32-CAM)',

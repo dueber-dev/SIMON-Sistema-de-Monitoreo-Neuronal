@@ -59,3 +59,30 @@ export function train(pts) {
 export function getModel() {
   return model || train(live.data.slice(-1800));
 }
+
+// ---- Modelo entrenado (gradient boosting de ml/entrenar_modelo.py) que corre en el Worker de Cloudflare.
+// El navegador manda [hora, luz %, °C] a /api/predecir y guarda la potencia predicha por hora de lectura.
+import { API } from './nube.js';
+const predNube = new Map();          // ts -> mW predichos
+let enCurso = false;
+export const nubeModelo = { info: null, error: false };
+export const pNube = d => predNube.get(d.ts);
+export const effNube = d => { const p = predNube.get(d.ts); return p === undefined ? undefined : efficiency(p, d.g); };
+export async function pedirPredicciones(pts) {
+  if (!API || enCurso) return false;
+  const faltan = pts.filter(d => !predNube.has(d.ts)).slice(-5000);
+  if (!faltan.length) return false;
+  enCurso = true;
+  try {
+    const r = await fetch(API + 'predecir', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filas: faltan.map(d => [d.ts, d.g, d.t]) }) });
+    if (!r.ok) throw new Error('API ' + r.status);
+    const j = await r.json();
+    faltan.forEach((d, k) => predNube.set(d.ts, j.p[k]));
+    nubeModelo.info = { nombre: j.nombre, arboles: j.arboles, donde: j.donde };
+    nubeModelo.error = false;
+    if (predNube.size > 30000) for (const k of [...predNube.keys()].slice(0, 10000)) predNube.delete(k);
+    return true;
+  } catch { nubeModelo.error = true; return false; }
+  finally { enCurso = false; }
+}

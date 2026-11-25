@@ -3,6 +3,8 @@
 // Los archivos de la dashboard se sirven desde /simon/ con los assets del Worker;
 // aquí solo llega lo que no es un archivo, o sea /simon/api/*.
 
+import MODELO from './modelo_gb.json';
+
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
@@ -28,6 +30,8 @@ export default {
       if (req.method === 'POST' && ruta === '/lecturas') return await recibir(req, env);
       if (req.method === 'POST' && ruta === '/foto') return await recibirFoto(req, env);
       if (req.method === 'POST' && ruta === '/programadas') return await programar(req, env);
+      if (req.method === 'POST' && ruta === '/predecir') return await predecir(req);
+      if (req.method === 'GET' && ruta === '/modelo') return json(infoModelo());
       const mp = ruta.match(/^\/programadas\/(\d+)$/);
       if (req.method === 'DELETE' && mp) return await cancelar(req, env, +mp[1]);
       if (req.method !== 'GET') return json({ error: 'método no permitido' }, 405);
@@ -232,4 +236,35 @@ async function listaFotos(env) {
   } catch {
     return json([]);
   }
+}
+
+// ---- Modelo de ML (gradient boosting entrenado con ml/entrenar_modelo.py, exportado a modelo_gb.json)
+// Corre aquí, dentro del Worker de Cloudflare: el navegador manda luz, temperatura y hora,
+// y recibe la potencia que el panel LIMPIO debería entregar en esas condiciones.
+const ANGULO = 50;
+function predecirFila(ts, luz, t) {
+  const h = (((ts / 3600000 - 6) % 24) + 24) % 24;          // hora de El Salvador (UTC-6)
+  const x = [luz, t, Math.sin(2 * Math.PI * h / 24), Math.cos(2 * Math.PI * h / 24), ANGULO];
+  let s = MODELO.base;
+  for (const arbol of MODELO.arboles) {
+    let i = 0;
+    while (!arbol[i][4]) {
+      const [f, umbral, izq, der, , , faltaIzq] = arbol[i], v = x[f];
+      i = Number.isFinite(v) ? (v <= umbral ? izq : der) : (faltaIzq ? izq : der);
+    }
+    s += arbol[i][5];
+  }
+  return Math.max(0, s);
+}
+const infoModelo = () => ({
+  nombre: MODELO.nombre, entradas: MODELO.X, arboles: MODELO.arboles.length,
+  donde: 'Cloudflare Worker «simon» (dueber.dev/simon/api/predecir)',
+});
+
+// POST /simon/api/predecir  { filas: [[ts, luz%, °C], ...] }  -> { p: [mW, ...] }
+async function predecir(req) {
+  const body = await req.json().catch(() => null);
+  const filas = Array.isArray(body?.filas) ? body.filas.slice(0, 5000) : [];
+  const p = filas.map(f => Array.isArray(f) ? Math.round(predecirFila(+f[0], +f[1], +f[2]) * 100) / 100 : null);
+  return json({ ...infoModelo(), p });
 }

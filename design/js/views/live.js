@@ -2,7 +2,7 @@ import { live, METRICS as M, SESSIONS, SCENARIOS, sessionData, summarize, val, d
 import { config, bus } from '../store.js';
 import { NUBE, nube, API } from '../nube.js';
 import { lineChart, scatter, spark, ring, fmt, hhmmss } from '../charts.js';
-import { polyfit, getModel } from '../ml.js';
+import { polyfit, getModel, effNube, pedirPredicciones } from '../ml.js';
 import { irradiance, irradiancePanel, soiling, efficiency, etaNominal, etaThreshold, pTheory, maintenance } from '../physics.js';
 import { $, $$, ic, tween, relDay, durFmt } from '../ui.js';
 
@@ -63,8 +63,6 @@ function mount(el) {
       camImg.style.display = 'block';
       const fallback = $('#live-cam-fallback', el);
       if (fallback) fallback.style.display = 'none';
-      const sub = $('#cam-sub', el);
-      if (sub) sub.textContent = NUBE ? 'ESP32-CAM · Nube' : 'ESP32-CAM · En línea';
     });
     camImg.addEventListener('error', () => {
       camImg.style.display = 'none';
@@ -72,8 +70,6 @@ function mount(el) {
       if (fallback) fallback.style.display = 'block';
       const status = $('#live-cam-status', el);
       if (status) status.textContent = '⚠️ Sin señal de video';
-      const sub = $('#cam-sub', el);
-      if (sub) sub.textContent = 'ESP32-CAM · Desconectada';
     });
   }
 
@@ -91,13 +87,9 @@ function updateCam() {
   }
   card.hidden = false;
   const img = $('#live-cam-img', root);
-  const urlTxt = $('#live-cam-url', root);
-  const sub = $('#cam-sub', root);
   const url = NUBE
     ? `${API}foto/ultima?t=${Date.now()}`
     : `http://${c.ip || '192.168.4.2'}:${c.puerto || 81}${c.ruta || '/stream'}`;
-  if (urlTxt) urlTxt.textContent = NUBE ? 'Nube: ' + API + 'foto/ultima' : url;
-  if (sub && NUBE) sub.textContent = 'ESP32-CAM · Nube';
   if (img && img.dataset.src !== url) {
     img.dataset.src = url;
     img.src = url;
@@ -222,12 +214,12 @@ function render() {
   $('#status-list', root).innerHTML = rows.map(([s, i, t, d]) =>
     `<li class="row"><span class="row__icon st-${s}">${ic(i, 16)}</span><span class="row__main"><b>${t}</b><span>${d}</span></span></li>`).join('');
 
-  // Predicción del modelo demo
-  const mdl = getModel();
-  const pred = mdl.predictEff(last.g, last.t), real = efficiency(last.p, last.g);
+  // Predicción: modelo gradient boosting que corre en el Worker de Cloudflare (si no responde, el ajuste local)
+  pedirPredicciones(data.slice(-60));
+  const enNube = effNube(last), pred = enNube ?? getModel().predictEff(last.g, last.t), real = efficiency(last.p, last.g);
   $('#ml-fig', root).innerHTML = `${fmt(pred, 1)} <small style="font-size:16px">%</small>`;
   $('#ml-fig', root).style.color = 'var(--ink)';
-  $('#ml-note', root).textContent = `Real: ${fmt(real, 1)} % · diferencia ${fmt(pred - real, 1)} pp`;
+  $('#ml-note', root).textContent = `Real: ${fmt(real, 1)} % · diferencia ${fmt(pred - real, 1)} pp · ${enNube !== undefined ? 'modelo en la nube' : 'ajuste local'}`;
 }
 
 export default { mount, show: () => { renderSessions(); updateCam(); render(); }, tick: render, render: () => { renderSessions(); updateCam(); render(); } };
