@@ -2,7 +2,7 @@ import { live, METRICS as M, SESSIONS, SCENARIOS, sessionData, summarize, val, d
 import { config, bus } from '../store.js';
 import { NUBE, nube, API } from '../nube.js';
 import { lineChart, scatter, spark, ring, fmt, hhmmss } from '../charts.js';
-import { polyfit, getModel, effNube, pedirPredicciones, nubeModelo, revisarLocal } from '../ml.js';
+import { polyfit, getModel, effNube, pedirPredicciones, nubeModelo, revisarLocal, rendimientoModelo, causaProbable, UMBRAL_PR } from '../ml.js';
 import { irradiance, irradiancePanel, gPanel, soiling, efficiency, etaNominal, etaThreshold, pTheory, maintenance } from '../physics.js';
 import { $, $$, ic, tween, relDay, durFmt } from '../ui.js';
 
@@ -153,7 +153,7 @@ function render() {
     series: [{ data: lit, y: d => efficiency(d.p, d.g), color: '--c-e' }], unit: '%', dec: 2, area: false,
     ref: [
       { y: etaN, label: `nominal ${fmt(etaN, 1)} %`, align: 'right' },
-      { y: thr, label: `mantenimiento ${fmt(thr, 1)} %`, color: '--warning' },
+      { y: thr, label: `${fmt(A.mant, 0)} % de la nominal`, color: '--warning' },
     ],
     bands: [{ to: thr, color: '--warning' }], aria: 'Eficiencia real frente a la nominal y al umbral de mantenimiento',
   });
@@ -185,13 +185,13 @@ function render() {
   $('#spec-area', root).textContent = fmt(P.area, 0);
   $('#panel-src', root).innerHTML = P.verificado ? 'Ficha técnica verificada' : '<span class="tag tag--warn">Datos de ejemplo</span>';
 
-  // Rendimiento vs nominal y mantenimiento
-  const mt = maintenance(data);
-  const ratio = mt.state === 'sin-luz' ? efficiency(last.p, last.g) / etaN * 100 : mt.ratio;
-  ring($('#ring', root), ratio, '--c-e', A.mant);
-  $('#perf-note', root).textContent = mt.state === 'sin-luz'
-    ? `Poca luz para evaluar: valor instantáneo. La marca es el umbral de ${fmt(A.mant, 0)} %.`
-    : `Mediana de ${fmt(A.mantMin, 0)} min con buena luz. La marca es el umbral de mantenimiento (${fmt(A.mant, 0)} %).`;
+  // Rendimiento contra el modelo (últimos 10 min): medida / predicha para el panel limpio
+  pedirPredicciones(data.slice(-600));
+  const rm = rendimientoModelo(data.slice(-600)), causa = causaProbable(rm, A.tMax);
+  ring($('#ring', root), rm ? rm.pr * 100 : 0, '--c-e', UMBRAL_PR * 100);
+  $('#perf-note', root).textContent = rm
+    ? `Medida ÷ predicha por el modelo, últimos 10 min con buena luz. La marca es el umbral de ${fmt(UMBRAL_PR * 100, 0)} %.`
+    : 'Poca luz o modelo sin respuesta: no se evalúa.';
 
   // Estado del sistema: ícono + texto, nunca solo color
   // Suciedad: compara la irradiancia que ve el panel (por su corriente) con la que ve la LDR
@@ -205,12 +205,12 @@ function render() {
           : ['warning', 'i-alert', 'ESP32 sin transmitir', `Se muestra la sesión v${nube.sesion?.id} · última lectura ${hhmmss(last.ts)}`])
       : sim ?['good', 'i-wifi', 'Simulador activo', `Escenario: ${esc.label} · 1 Hz · sin hardware`]
         : ['good', 'i-wifi', 'Conexión estable', `TCP ${config.conexion.ip}:${config.conexion.puerto} · 0 tramas perdidas`],
-    mt.state === 'revisar' ? ['warning', 'i-wrench', 'Revisar o limpiar el panel', `η ${fmt(mt.median, 2)} % bajo el umbral de ${fmt(thr, 2)} % (últimos ${fmt(A.mantMin, 0)} min)`]
-      : mt.state === 'ok' ? ['good', 'i-wrench', 'Mantenimiento al día', `η ${fmt(mt.median, 2)} % · umbral ${fmt(thr, 2)} %`]
-        : ['muted', 'i-wrench', 'Mantenimiento sin evaluar', `Se evalúa con irradiancia ≥ ${fmt(A.mantGmin, 0)} W/m²`],
-    sc.state === 'sucio' ? ['warning', 'i-sun', 'Panel sucio o sombreado', `S = G_panel / G_LDR = ${fmt(sc.S, 2)} · umbral ${fmt(A.suciedad / 100, 2)}`]
-      : sc.state === 'limpio' ? ['good', 'i-sun', 'Panel limpio', `S = G_panel / G_LDR = ${fmt(sc.S, 2)} · umbral ${fmt(A.suciedad / 100, 2)}`]
-        : ['muted', 'i-sun', 'Suciedad sin evaluar', `G_panel ${fmt(gPan, 0)} W/m² · G_LDR ${fmt(irradiance(last.g), 0)} W/m² · falta luz`],
+    !rm ? ['muted', 'i-wrench', 'Mantenimiento sin evaluar', 'Hace falta buena luz y la predicción del modelo']
+      : rm.pr < UMBRAL_PR ? ['warning', 'i-wrench', 'Revisar el panel', `Rinde ${fmt(rm.pr * 100, 0)} % de lo que predice el modelo · umbral ${fmt(UMBRAL_PR * 100, 0)} % (10 min)`]
+        : ['good', 'i-wrench', 'Mantenimiento al día', `Rinde ${fmt(rm.pr * 100, 0)} % de lo que predice el modelo · umbral ${fmt(UMBRAL_PR * 100, 0)} %`],
+    !causa ? ['muted', 'i-sun', 'Causa probable sin evaluar', 'Se evalúa junto con el rendimiento']
+      : causa.estado === 'ok' ? ['good', 'i-sun', 'Panel limpio', 'Sin pérdidas que explicar']
+        : ['warning', 'i-sun', causa.titulo, `${causa.accion} · variación entre minutos ${fmt(rm.variabilidad * 100, 0)} %`],
     last.t > A.tMax ? ['warning', 'i-alert', 'Temperatura alta', `${fmt(last.t, 1)} °C · umbral ${fmt(A.tMax, 0)} °C`]
       : ['good', 'i-check', 'Temperatura en rango', `${fmt(last.t, 1)} °C · umbral ${fmt(A.tMax, 0)} °C`],
     last.p < A.pMin ? ['critical', 'i-alert', 'Sin potencia', 'Falta de irradiación o circuito abierto']

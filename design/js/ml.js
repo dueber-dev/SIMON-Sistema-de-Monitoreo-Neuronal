@@ -99,6 +99,7 @@ export async function pronostico(dias = 3) {
   return j;
 }
 export const pNube = d => predNube.get(d.ts);
+export const faltanPredicciones = pts => pts.some(d => !predNube.has(d.ts));
 export const effNube = d => { const p = predNube.get(d.ts); return p === undefined ? undefined : efficiency(p, d.g); };
 export async function pedirPredicciones(pts) {
   if (!API || enCurso) return false;
@@ -117,4 +118,37 @@ export async function pedirPredicciones(pts) {
     return true;
   } catch { nubeModelo.error = true; return false; }
   finally { enCurso = false; }
+}
+
+// ---- Rendimiento contra el modelo: Σ P medida / Σ P predicha (panel limpio), solo con buena luz.
+// Es la base de la alerta de mantenimiento: 1 = rinde lo que debería; < 0,85 = revisar.
+export const UMBRAL_PR = 0.85;
+export function rendimientoModelo(pts, minPred = 50) {
+  let med = 0, pre = 0, n = 0, sumT = 0;
+  const porMin = new Map();
+  for (const d of pts) {
+    const p = predNube.get(d.ts);
+    if (p === undefined || p < minPred) continue;
+    med += d.p; pre += p; n++; sumT += d.t;
+    const k = Math.floor(d.ts / 60000), m = porMin.get(k) || [0, 0];
+    m[0] += d.p; m[1] += p; porMin.set(k, m);
+  }
+  if (n < 30) return null;
+  const minutos = [...porMin.values()].filter(m => m[1] > 0).map(m => m[0] / m[1]);
+  const media = minutos.reduce((a, v) => a + v, 0) / (minutos.length || 1);
+  const sd = Math.sqrt(minutos.reduce((a, v) => a + (v - media) ** 2, 0) / (minutos.length || 1));
+  return { pr: med / pre, n, minutos: minutos.length, variabilidad: sd, ultimo: minutos[minutos.length - 1], tMedia: sumT / n };
+}
+
+// Causa probable cuando el rendimiento queda bajo el umbral
+// Temperatura: la media de los minutos evaluados (no el máximo de la sesión)
+export function causaProbable(r, tMax) {
+  if (!r) return null;
+  const tPanel = r.tMedia;
+  if (r.pr >= UMBRAL_PR) return { estado: 'ok', titulo: 'Sin pérdidas', accion: 'No hace falta intervenir' };
+  // El modelo ya descuenta la temperatura (es una de sus entradas): una pérdida que queda
+  // no la explica el calor. Si además está caliente, se avisa como factor agravante.
+  const calor = tPanel > tMax ? ` · además el panel está a ${tPanel.toFixed(1).replace(".", ",")} °C` : '';
+  if (r.variabilidad > 0.15) return { estado: 'sombra', titulo: 'Sombra o nubes pasajeras', accion: 'Revisar si algo tapa el panel; si es una nube, esperar' + calor };
+  return { estado: 'sucio', titulo: 'Suciedad probable', accion: 'Limpiar el panel con agua y paño suave' + calor };
 }

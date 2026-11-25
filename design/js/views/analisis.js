@@ -1,7 +1,7 @@
 import { METRICS as M, SESSIONS, getSession, sessionData, summarize, toCSV, val, decOf } from '../sim.js';
 import { config } from '../store.js';
 import { lineChart, scatter, bars, histogram, fmt, hhmmss } from '../charts.js';
-import { polyfit, lstsq } from '../ml.js';
+import { polyfit, lstsq, rendimientoModelo, causaProbable, pedirPredicciones, faltanPredicciones, UMBRAL_PR } from '../ml.js';
 import { irradiance, gPanel, efficiency, etaNominal, etaThreshold, pTheory, maintenance } from '../physics.js';
 import { $, $$, ic, viewHeader, download, relDay, durFmt, timeFmt, toast, infoBtn } from '../ui.js';
 
@@ -141,13 +141,17 @@ function render() {
   const s = getSession(sid), pts = data(), sm = summarize(pts), A = config.alertas;
   const mt = maintenance(pts, config, Infinity), etaN = etaNominal();
   const hot = pts.filter(d => d.t > A.tMax).length;
-  const mtNote = mt.state === 'revisar' ? `<span class="st-warning">▲</span> Revisar o limpiar el panel`
-    : mt.state === 'ok' ? `<span class="st-good">●</span> Mantenimiento al día` : 'Sin luz suficiente para evaluar';
+  // Rendimiento contra el modelo en toda la sesión (las predicciones llegan por partes)
+  pedirPredicciones(pts).then(llego => { if (llego) render(); else if (pts.length && faltanPredicciones(pts)) setTimeout(render, 1500); });
+  const rm = rendimientoModelo(pts), causa = causaProbable(rm, A.tMax);
+  const mtNote = !rm ? 'Esperando predicciones o falta luz'
+    : rm.pr < UMBRAL_PR ? `<span class="st-warning">▲</span> ${causa.titulo}: ${causa.accion[0].toLowerCase() + causa.accion.slice(1)}`
+      : `<span class="st-good">●</span> Mantenimiento al día`;
   $('#an-stats', root).innerHTML = [
     stat('Energía', '--c-p', fmt(sm.energyWh, 2), 'Wh', `en ${durFmt(sm.dur)}`, infoBtn('energia', 'energía')),
     stat('Potencia media', '--c-p', fmt(sm.meanP, 0), 'mW', `pico ${fmt(sm.peak, 0)} mW`, infoBtn('p', 'potencia')),
     stat('Eficiencia', '--c-e', mt.median ? fmt(mt.median, 2) : '—', '%', `nominal ${fmt(etaN, 1)} % · mediana con buena luz`, infoBtn('e', 'eficiencia')),
-    stat('Rendimiento vs nominal', '--c-e', mt.ratio ? fmt(mt.ratio, 0) : '—', '%', `${mtNote} · umbral ${fmt(A.mant, 0)} %`, infoBtn('mant', 'mantenimiento')),
+    stat('Rendimiento vs modelo', '--c-e', rm ? fmt(rm.pr * 100, 0) : '—', '%', `${mtNote} · umbral ${fmt(UMBRAL_PR * 100, 0)} %`, infoBtn('mant', 'mantenimiento')),
     stat('Temperatura máx.', '--c-t', fmt(sm.maxT, 1), '°C', hot ? `<span class="st-warning">▲</span> ${durFmt(hot)} sobre ${fmt(A.tMax, 0)} °C` : `nunca sobre ${fmt(A.tMax, 0)} °C`, infoBtn('t', 'temperatura')),
     stat('Irradiancia media', '--c-g', fmt(pts.reduce((a, d) => a + gPanel(d), 0) / (pts.length || 1), 0), 'W/m²', `calculada con la corriente del panel · pico ${fmt(Math.max(0, ...pts.map(d => gPanel(d))), 0)} W/m²`, infoBtn('g', 'irradiancia')),
   ].join('');
