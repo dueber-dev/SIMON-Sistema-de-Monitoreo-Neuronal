@@ -96,8 +96,9 @@ class Modelo:
         ultimas = {s['id'] for s in sorted(lista, key=lambda s: -s['fin'])[:2]}
         tablas, usadas = [], []
         for s in lista:
-            if s['n'] < MIN_LECTURAS or any(w in (s.get('nombre') or '').lower() for w in EXCLUIR):
+            if s['n'] < MIN_LECTURAS:
                 continue
+            afectada = any(w in (s.get('nombre') or '').lower() for w in EXCLUIR)
             f = CACHE / f"sesion_{s['id']}.json"
             if not f.exists() or (refrescar_ultimas and (s['id'] in ultimas or s.get('vivo'))):
                 f.write_text(json.dumps(bajar(f"sesiones/{s['id']}", timeout=60)))
@@ -116,15 +117,20 @@ class Modelo:
             X = features(df.ts.values, df.Luz.values, df['T'].values)
             X['Potencia_mW'] = df.P.values
             X['sesion'] = s['id']
+            X['ts'] = df.ts.values
+            X['afectada'] = afectada              # polvo/sombra: no se entrena con ella, sí se evalúa
+            X['nombre'] = s.get('nombre') or ''
             tablas.append(X)
-            usadas.append(s['id'])
+            if not afectada:
+                usadas.append(s['id'])
         return pd.concat(tablas, ignore_index=True), usadas
 
     def entrenar(self):
         with self.lock:
             self.info.update(estado='descargando sesiones de la nube…')
             t0 = time.time()
-            df, usadas = self.datos()
+            todo, usadas = self.datos()
+            df = todo[~todo.afectada].reset_index(drop=True)
             self.info.update(estado='entrenando…')
             y = df.Potencia_mW.values
             # Validación: dejar fuera una sesión real a la vez (datos que el modelo nunca vio)
@@ -144,6 +150,13 @@ class Modelo:
                 imp[c] = max(0.0, mean_absolute_error(y, gb.predict(Xp)) - base)
             tot = sum(imp.values()) or 1
             self.gb = gb
+            # Predicción «panel limpio» para cada minuto: fuera de muestra en las sesiones de
+            # entrenamiento (modelo que no las vio) y con el modelo final en las afectadas.
+            pred_todo = np.zeros(len(todo))
+            pred_todo[~todo.afectada.values] = pred_gb
+            if todo.afectada.any():
+                pred_todo[todo.afectada.values] = gb.predict(todo.loc[todo.afectada, X_COLS])
+            deg = degradacion(todo.assign(pred=pred_todo))
             self.info = {
                 'listo': True, 'estado': 'listo', 'donde': 'Tu computadora (ml/servidor_local.py)',
                 'nombre': 'gradient boosting', 'sesiones': len(usadas), 'minutos': int(len(df)),
@@ -152,6 +165,7 @@ class Modelo:
                 'gb': metricas(y, pred_gb), 'fisico': metricas(y, pred_fis),
                 'importancia': [{'label': {'Luz_Pct': 'Luz (LDR)', 'Temperatura_C': 'Temperatura', 'hora_sin': 'Hora (seno)', 'hora_cos': 'Hora (coseno)'}[k],
                                  'value': round(v / tot * 100, 1)} for k, v in sorted(imp.items(), key=lambda kv: -kv[1])],
+                'degradacion': deg,
             }
             print(f"[modelo] {len(usadas)} sesiones, {len(df)} min | GB {self.info['gb']} | física {self.info['fisico']}")
             return self.info
@@ -163,6 +177,55 @@ class Modelo:
         if not len(a):
             return []
         return np.round(np.maximum(self.gb.predict(features(a[:, 0], a[:, 1], a[:, 2])[X_COLS]), 0), 2).tolist()
+
+
+UMBRAL_PR = 0.85        # mismo umbral del detector de suciedad (medido / predicho)
+MIN_MIN_DIA = 20        # minutos con buena luz para que un día cuente
+
+
+def degradacion(d):
+    """Rendimiento relativo diario PR = Σ P medida / Σ P predicha (panel limpio), solo con
+    buena luz (predicha > 50 mW). Se ajusta una recta PR(día) con los días de operación
+    normal y se proyecta cuándo cruza el umbral. Incertidumbre: banda del 95 % de la pendiente."""
+    d = d[d.pred > 50].copy()
+    d['dia'] = pd.to_datetime(d.ts, unit='ms') - pd.Timedelta(hours=6)
+    d['dia'] = d.dia.dt.normalize()
+    filas = []
+    for dia, g in d.groupby('dia'):
+        if len(g) < MIN_MIN_DIA:
+            continue
+        af = g.afectada.any()
+        filas.append({'dia': int((dia + pd.Timedelta(hours=18)).value // 10**6),   # mediodía local en ms
+                      'pr': round(float(g.Potencia_mW.sum() / g.pred.sum()), 4), 'minutos': int(len(g)),
+                      'tipo': (g.loc[g.afectada, 'nombre'].iloc[0] if af else 'operación normal')})
+    out = {'umbral': UMBRAL_PR, 'dias': filas, 'metodo': 'PR diario = Σ P medida / Σ P predicha (panel limpio); recta por mínimos cuadrados con los días de operación normal'}
+    norm = [f for f in filas if f['tipo'] == 'operación normal']
+    if len(norm) < 3:
+        out['estado'] = 'faltan días'
+        return out
+    x = np.array([f['dia'] for f in norm]) / 86400e3
+    y = np.array([f['pr'] for f in norm])
+    x0 = x.min()
+    A = np.c_[np.ones_like(x), x - x0]
+    (b0, b1), *_ = np.linalg.lstsq(A, y, rcond=None)
+    res = y - A @ [b0, b1]
+    se = float(np.sqrt(res @ res / max(len(x) - 2, 1) / max(((x - x.mean()) ** 2).sum(), 1e-9)))
+    hoy = time.time() / 86400 - 6 / 24
+    pr_hoy = b0 + b1 * (hoy - x0)
+    out.update(estado='ok', pendiente_pct_dia=round(b1 * 100, 3), se_pct_dia=round(se * 100, 3),
+               pr_hoy=round(float(pr_hoy), 4), recta={'x0_ms': int(x0 * 86400e3), 'b0': float(b0), 'b1_dia': float(b1)},
+               dias_normales=len(norm))
+
+    def cruce(pend):
+        if pend >= 0:
+            return None
+        dias = (UMBRAL_PR - pr_hoy) / pend
+        return max(0.0, float(dias))
+    c, c_rapido, c_lento = cruce(b1), cruce(b1 - 1.96 * se), cruce(b1 + 1.96 * se)
+    out['dias_para_umbral'] = None if c is None else round(c, 1)
+    out['fecha_umbral_ms'] = None if c is None else int((time.time() + c * 86400) * 1000)
+    out['banda_dias'] = [None if c_rapido is None else round(c_rapido, 1), None if c_lento is None else round(c_lento, 1)]
+    return out
 
 
 MODELO = Modelo()
@@ -288,7 +351,13 @@ class Handler(SimpleHTTPRequestHandler):
 
 def main():
     mimetypes.add_type('text/javascript', '.js')
-    srv = ThreadingHTTPServer(('127.0.0.1', PUERTO), Handler)
+    # En Windows, reutilizar la dirección deja que dos servidores escuchen el mismo puerto sin error
+    ThreadingHTTPServer.allow_reuse_address = False
+    try:
+        srv = ThreadingHTTPServer(('127.0.0.1', PUERTO), Handler)
+    except OSError:
+        print(f'El puerto {PUERTO} ya está en uso: probablemente el servidor ya está abierto. Abre http://localhost:{PUERTO}/simon/')
+        return
     print(f'SIMON local en http://localhost:{PUERTO}/simon/  (Ctrl+C para salir)')
     threading.Thread(target=MODELO.entrenar, daemon=True).start()
     if '--no-abrir' not in sys.argv:

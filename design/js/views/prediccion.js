@@ -57,6 +57,18 @@ function mount(el) {
       </article>
     </div>
 
+    <article class="card glass reveal" style="--i:5.4" id="ml-deg-card" hidden>
+      <div class="card__head" style="flex-wrap:wrap">
+        <div><h2 class="card__title">Proyección de mantenimiento</h2>
+          <p class="card__sub">Rendimiento relativo diario = potencia medida ÷ potencia que predice el modelo para el panel limpio</p></div>
+        <span class="badge" style="--mc:var(--warning)">${ic('i-wrench', 15)}</span>
+      </div>
+      <div class="pron-dias" id="ml-deg-kpis"></div>
+      <div class="legend"><span><i style="--mc:var(--c-e)"></i>Día de operación normal</span><span><i style="--mc:var(--warning)"></i>Día con polvo o sombra (bitácora)</span><span><i style="--mc:var(--c-ref)"></i>Tendencia proyectada</span></div>
+      <div class="chart" id="ml-deg-ch"></div>
+      <p class="card__sub" id="ml-deg-note" style="margin-top:10px"></p>
+    </article>
+
     <article class="card glass reveal" style="--i:5.5" id="ml-pron-card" hidden>
       <div class="card__head" style="flex-wrap:wrap">
         <div><h2 class="card__title">Pronóstico de los próximos días</h2>
@@ -185,6 +197,40 @@ function renderPronostico() {
   lineChart($('#ml-pron-g', root), { series: [{ data: pts, y: d => d.g, color: '--c-g', name: 'Irradiancia' }], unit: 'W/m²', dec: 0, zero: true, xFmt: xf, aria: 'Irradiancia pronosticada' });
 }
 
+function renderDegradacion() {
+  const card = $('#ml-deg-card', root), D = nubeModelo.local?.degradacion;
+  if (!card) return;
+  card.hidden = !D;
+  if (!D || root.hidden) return;
+  const fecha = ms => new Date(ms).toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short' });
+  const pct = v => fmt(v * 100, 1) + ' %';
+  if (D.estado !== 'ok') { $('#ml-deg-note', root).textContent = 'Faltan días con buena luz para proyectar (mínimo 3 de operación normal).'; return; }
+  const pend = D.pendiente_pct_dia, [rap, len] = D.banda_dias;
+  const kpi = (lbl, val, nota) => `<div class="pron-dia"><span>${lbl}</span><b class="tnum">${val}</b><span>${nota}</span></div>`;
+  $('#ml-deg-kpis', root).innerHTML = [
+    kpi('Rendimiento hoy (tendencia)', pct(D.pr_hoy), `umbral de mantenimiento ${pct(D.umbral)}`),
+    kpi('Tendencia', `${pend >= 0 ? '+' : ''}${fmt(pend, 2)} <small>% por día</small>`, `± ${fmt(D.se_pct_dia * 1.96, 2)} % (95 %) · ${D.dias_normales} días`),
+    kpi('Cruce del umbral', D.dias_para_umbral == null ? 'sin cruce' : `${fmt(D.dias_para_umbral, 0)} <small>días</small>`,
+      D.fecha_umbral_ms ? `≈ ${fecha(D.fecha_umbral_ms)} · banda ${rap == null ? '—' : fmt(rap, 0)} días a ${len == null ? 'sin cruce' : fmt(len, 0) + ' días'}` : 'la tendencia actual no baja'),
+  ].join('');
+  const pts = D.dias.map(d => ({ ts: d.dia, pr: d.pr * 100, tipo: d.tipo }));
+  const r = D.recta, finTs = Math.max(D.fecha_umbral_ms || 0, Date.now() + 14 * 86400e3, ...pts.map(p => p.ts));
+  const linea = [pts[0].ts, finTs].map(ts => ({ ts, pr: (r.b0 + r.b1_dia * (ts - r.x0_ms) / 86400e3) * 100 }));
+  lineChart($('#ml-deg-ch', root), {
+    series: [{ data: linea, y: d => d.pr, color: '--c-ref', name: 'Tendencia' }],
+    points: pts.map(p => ({ x: p.ts, y: p.pr, color: p.tipo === 'operación normal' ? '--c-e' : '--warning' })),
+    ref: [{ y: D.umbral * 100, label: `umbral ${fmt(D.umbral * 100, 0)} %`, color: '--warning' }],
+    yMin: Math.min(D.umbral * 100, ...pts.map(p => p.pr), ...linea.map(p => p.pr)) - 4, yMax: Math.max(...pts.map(p => p.pr), ...linea.map(p => p.pr)) + 4,
+    bands: [{ to: D.umbral * 100, color: '--warning' }], unit: '%', dec: 1, area: false, endLabels: false,
+    xFmt: v => fecha(v), aria: 'Rendimiento relativo diario y su proyección',
+  });
+  const afect = D.dias.filter(d => d.tipo !== 'operación normal').map(d => `${fecha(d.dia)}: ${d.tipo} (${pct(d.pr)})`);
+  $('#ml-deg-note', root).innerHTML = `${D.dias_para_umbral == null ? 'Con la tendencia actual el panel no llega al umbral.' : `<b>Alerta preventiva:</b> con la tendencia actual el rendimiento llega a ${pct(D.umbral)} en unos ${fmt(D.dias_para_umbral, 0)} días; programar limpieza antes del ${fecha(D.fecha_umbral_ms)}.`} `
+    + `La banda es ancha porque hay pocos días: si la pendiente real fuera cero, no habría cruce. `
+    + (afect.length ? `Los días marcados en la bitácora quedan bajo el umbral, como se espera: ${afect.join(' · ')}. ` : '')
+    + `Umbral: el mismo del detector de suciedad (medida / predicha < ${fmt(D.umbral, 2)}), que en las pruebas detectó todas las ventanas sucias con 1 % de falsas alarmas.`;
+}
+
 function renderWhatIf() {
   const mdl = getModel(), g = wiG / config.sensores.ldrFactor; // W/m² → % del LDR, como lo vería el sensor
   const effTh = t => pTheory(g, t) / 1000 / (wiG * areaM2()) * 100;
@@ -252,6 +298,7 @@ function render() {
   renderLive();
   renderWhatIf();
   renderPronostico();
+  renderDegradacion();
 }
 
 export default { mount, show: render, tick: () => { if (root && !root.hidden) renderLive(); }, render };
