@@ -1,6 +1,7 @@
 #include <WiFi.h>
 #include <WiFiMulti.h>
 #include <WiFiClientSecure.h>
+#include <WiFiUdp.h>
 #include <HTTPClient.h>
 #include <Wire.h>
 #include <Adafruit_INA219.h>
@@ -30,6 +31,19 @@ WiFiMulti wifiMulti;
 //   fijo = conectado | se apaga un instante = la nube recibió datos
 //   parpadeo lento = buscando Wi-Fi | parpadeo rápido = no responde el INA219
 const int pinLED = 2;
+
+// --- ANTI-APAGADO DE LA POWERBANK ---
+// Muchas powerbanks se apagan solas si el consumo baja de ~50-100 mA. Con la red propia
+// encendida (AP) la placa nunca se apagaba, así que ahora el AP queda siempre activo y
+// además se mandan ráfagas cortas de paquetes por esa red local: cada ráfaga enciende el
+// transmisor (~200 mA) y la powerbank ve consumo todo el tiempo.
+const bool ANTI_APAGADO = true;
+const unsigned long RAFAGA_CADA_MS = 1000;
+const int PAQUETES_POR_RAFAGA = 25;
+// Opcional (hardware): transistor + resistencia de carga en este pin, se activa 1 s cada 10 s.
+// Si no hay nada conectado, no pasa nada.
+const int pinCarga = 25;
+WiFiUDP udpCarga;
 WiFiServer server(8080);
 WiFiClient client;
 
@@ -83,7 +97,11 @@ void avisarConexion() {
 // Prueba todas las redes de secrets.h (casa y universidad) y se queda con la de mejor señal.
 void iniciarWiFi() {
   WiFi.persistent(false);
-  WiFi.mode(WIFI_STA);
+  // AP + STA desde el inicio: la red local siempre existe (y mantiene despierta la powerbank)
+  // mientras se buscan o se usan las redes conocidas.
+  WiFi.mode(WIFI_AP_STA);
+  WiFi.softAP(ssidLocal, passLocal);
+  WiFi.setTxPower(WIFI_POWER_19_5dBm);
   WiFi.setSleep(false);          // sin ahorro de energía: conexión más estable y la powerbank
                                  // ve un consumo constante (muchas se apagan si el consumo es bajo)
   WiFi.setAutoReconnect(true);
@@ -103,9 +121,6 @@ void iniciarWiFi() {
     modoNube = true;
     avisarConexion();
   } else {
-    // AP + STA: la red local queda disponible y a la vez se siguen buscando las conocidas.
-    WiFi.mode(WIFI_AP_STA);
-    WiFi.softAP(ssidLocal, passLocal);
     Serial.print("Sin internet por ahora: modo LOCAL. Red "); Serial.print(ssidLocal);
     Serial.print(", IP: "); Serial.println(WiFi.softAPIP());
     Serial.println("Se seguirá buscando la red conocida cada 20 s.");
@@ -171,6 +186,8 @@ void setup() {
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); // Evita apagados por caídas de voltaje con Power Bank o USB
   Serial.begin(115200);
   pinMode(pinLED, OUTPUT);
+  pinMode(pinCarga, OUTPUT);
+  digitalWrite(pinCarga, LOW);
   digitalWrite(pinLED, LOW);
   delay(500);   // con powerbank el voltaje tarda un poco en estabilizarse (y el INA219 también)
   Serial.println("\n--- INICIANDO SISTEMA INA219 ---");
@@ -200,6 +217,23 @@ void setup() {
   ultimoEnvioOk = millis();
 }
 
+// Mantiene la powerbank encendida: ráfaga de paquetes por la red local + pulso en pinCarga.
+void mantenerPowerbank() {
+  if (!ANTI_APAGADO) return;
+  static unsigned long ultimaRafaga = 0;
+  if (millis() - ultimaRafaga >= RAFAGA_CADA_MS) {
+    ultimaRafaga = millis();
+    IPAddress bcast = WiFi.softAPIP();
+    bcast[3] = 255;
+    for (int k = 0; k < PAQUETES_POR_RAFAGA; k++) {
+      udpCarga.beginPacket(bcast, 9999);
+      udpCarga.print("SIMON keep-alive");
+      udpCarga.endPacket();
+    }
+  }
+  digitalWrite(pinCarga, (millis() % 10000) < 1000 ? HIGH : LOW);
+}
+
 // LED: fijo si hay red, parpadeo lento si la busca, rápido si falta el INA219.
 void actualizarLED() {
   static unsigned long ultimo = 0;
@@ -215,6 +249,7 @@ void loop() {
 
   vigilarWiFi();
   actualizarLED();
+  mantenerPowerbank();
 
   // Red de seguridad: si pasan 5 min sin que la nube reciba nada (Wi-Fi colgado, DHCP,
   // TLS trabado), se reinicia la placa. No aplica si hay una laptop leyendo en modo local.
