@@ -1,4 +1,5 @@
 #include <WiFi.h>
+#include <WiFiMulti.h>
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include <Wire.h>
@@ -12,18 +13,30 @@ Adafruit_INA219 ina219;
 bool inaPresente = false;
 
 // --- CONFIGURACIÓN WI-FI ---
-// Primero intenta conectarse a WIFI_SSID para mandar los datos a la nube.
-// Si no lo encuentra, crea su propia red como antes (modo local con el .bat).
+// Intenta conectarse a las redes de secrets.h para mandar los datos a la nube.
+// Si no hay ninguna al arrancar, levanta su propia red (modo local con el .bat)
+// PERO sigue buscando las redes conocidas cada 20 s: nunca se rinde.
 const char* ssidLocal = "ESP32_Panel_Solar";
 const char* passLocal = "";
-const unsigned long ESPERA_WIFI_MS = 15000;
+const unsigned long ESPERA_WIFI_MS = 20000;     // primer intento al encender
+const unsigned long REINTENTO_WIFI_MS = 20000;  // cada cuánto reintenta si no hay red
+const unsigned long SIN_ENVIO_REINICIO_MS = 5UL * 60UL * 1000UL; // 5 min sin enviar -> reinicio
 bool modoNube = false;
+unsigned long ultimoIntentoWiFi = 0;
+unsigned long ultimoEnvioOk = 0;
+WiFiMulti wifiMulti;
+
+// LED azul de la placa: estado sin necesidad del monitor serie.
+//   fijo = conectado | se apaga un instante = la nube recibió datos
+//   parpadeo lento = buscando Wi-Fi | parpadeo rápido = no responde el INA219
+const int pinLED = 2;
 WiFiServer server(8080);
 WiFiClient client;
 
 // --- NUBE ---
 const int LOTE = 5;          // se manda un POST cada 5 lecturas (5 s)
-const int MAX_COLA = 60;     // si se cae internet, se guardan hasta 60 s de lecturas
+const int MAX_COLA = 300;    // si se cae internet, se guardan hasta 5 min de lecturas
+const int MAX_POR_POST = 30; // al reconectar, la cola se vacía en trozos de 30
 struct Lectura { unsigned long seg; float v, i, p, t, luz; };
 Lectura cola[MAX_COLA];
 int nCola = 0;
@@ -60,33 +73,65 @@ float leerADC(int pin, bool enMilivolts) {
   return suma / (float)(MUESTRAS - 2 * DESCARTE);
 }
 
+void avisarConexion() {
+  Serial.print("Modo NUBE. Red: "); Serial.print(WiFi.SSID());
+  Serial.print(", señal: "); Serial.print(WiFi.RSSI()); Serial.print(" dBm");
+  Serial.print(", IP: "); Serial.println(WiFi.localIP());
+  Serial.println("Dashboard: https://dueber.dev/simon");
+}
+
+// Prueba todas las redes de secrets.h (casa y universidad) y se queda con la de mejor señal.
 void iniciarWiFi() {
-  Serial.print("Conectando a "); Serial.print(WIFI_SSID);
+  WiFi.persistent(false);
   WiFi.mode(WIFI_STA);
+  WiFi.setSleep(false);          // sin ahorro de energía: conexión más estable y la powerbank
+                                 // ve un consumo constante (muchas se apagan si el consumo es bajo)
   WiFi.setAutoReconnect(true);
-  WiFi.begin(WIFI_SSID, WIFI_PASS);
+  wifiMulti.addAP(WIFI_SSID, WIFI_PASS);
+#ifdef WIFI_SSID_U
+  if (strlen(WIFI_SSID_U) > 0) wifiMulti.addAP(WIFI_SSID_U, WIFI_PASS_U);
+#endif
+  Serial.print("Buscando redes conocidas");
   unsigned long t0 = millis();
-  while (WiFi.status() != WL_CONNECTED && millis() - t0 < ESPERA_WIFI_MS) { delay(500); Serial.print("."); }
+  while (wifiMulti.run() != WL_CONNECTED && millis() - t0 < ESPERA_WIFI_MS) {
+    digitalWrite(pinLED, !digitalRead(pinLED));
+    delay(500); Serial.print(".");
+  }
   Serial.println();
 
   if (WiFi.status() == WL_CONNECTED) {
     modoNube = true;
-    Serial.print("Modo NUBE. IP en la red: "); Serial.println(WiFi.localIP());
-    Serial.println("Dashboard: https://dueber.dev/simon");
+    avisarConexion();
   } else {
-    WiFi.disconnect(true);
-    WiFi.mode(WIFI_AP);
+    // AP + STA: la red local queda disponible y a la vez se siguen buscando las conocidas.
+    WiFi.mode(WIFI_AP_STA);
     WiFi.softAP(ssidLocal, passLocal);
-    Serial.print("Sin internet: modo LOCAL. Red "); Serial.print(ssidLocal);
+    Serial.print("Sin internet por ahora: modo LOCAL. Red "); Serial.print(ssidLocal);
     Serial.print(", IP: "); Serial.println(WiFi.softAPIP());
+    Serial.println("Se seguirá buscando la red conocida cada 20 s.");
   }
+  ultimoIntentoWiFi = millis();
+}
+
+// En cada vuelta del loop: si se perdió la red (o nunca se tuvo), reintenta.
+void vigilarWiFi() {
+  if (WiFi.status() == WL_CONNECTED) {
+    if (!modoNube) { modoNube = true; avisarConexion(); }
+    return;
+  }
+  if (modoNube) { modoNube = false; Serial.println("Se perdió el Wi-Fi, reintentando..."); }
+  if (millis() - ultimoIntentoWiFi < REINTENTO_WIFI_MS) return;
+  ultimoIntentoWiFi = millis();
+  Serial.println("Buscando redes conocidas...");
+  if (wifiMulti.run(8000) == WL_CONNECTED) { modoNube = true; avisarConexion(); }
 }
 
 // Manda las lecturas pendientes. Si falla, se quedan en la cola para el siguiente intento.
 void enviarNube() {
-  if (WiFi.status() != WL_CONNECTED) return;
+  if (WiFi.status() != WL_CONNECTED || nCola == 0) return;
+  int n = nCola < MAX_POR_POST ? nCola : MAX_POR_POST;
   String json = "{\"clave\":\"" + claveSesion + "\",\"filas\":[";
-  for (int k = 0; k < nCola; k++) {
+  for (int k = 0; k < n; k++) {
     const Lectura& l = cola[k];
     if (k) json += ",";
     json += "[" + String(l.seg) + "," + String(l.v, 3) + "," + String(l.i, 2) + "," +
@@ -111,7 +156,12 @@ void enviarNube() {
   http.end();
 
   if (codigo == 200) {
-    nCola = 0;
+    nCola -= n;
+    if (nCola > 0) memmove(cola, cola + n, sizeof(Lectura) * nCola);
+    ultimoEnvioOk = millis();
+    digitalWrite(pinLED, LOW);   // parpadeo corto: la nube recibió los datos
+    delay(80);
+    digitalWrite(pinLED, HIGH);
   } else {
     Serial.print("Error al enviar a la nube: "); Serial.println(codigo);
   }
@@ -120,6 +170,9 @@ void enviarNube() {
 void setup() {
   WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); // Evita apagados por caídas de voltaje con Power Bank o USB
   Serial.begin(115200);
+  pinMode(pinLED, OUTPUT);
+  digitalWrite(pinLED, LOW);
+  delay(500);   // con powerbank el voltaje tarda un poco en estabilizarse (y el INA219 también)
   Serial.println("\n--- INICIANDO SISTEMA INA219 ---");
 
   // Iniciar INA219. Si no responde, el Wi-Fi arranca igual para poder depurar.
@@ -144,11 +197,33 @@ void setup() {
   clienteSeguro.setInsecure();
   claveSesion = String(esp_random(), HEX) + String(esp_random(), HEX);
   tiempoInicio = millis();
+  ultimoEnvioOk = millis();
+}
+
+// LED: fijo si hay red, parpadeo lento si la busca, rápido si falta el INA219.
+void actualizarLED() {
+  static unsigned long ultimo = 0;
+  unsigned long periodo = !inaPresente ? 100 : (modoNube ? 0 : 500);
+  if (periodo == 0) { digitalWrite(pinLED, HIGH); return; }
+  if (millis() - ultimo >= periodo) { ultimo = millis(); digitalWrite(pinLED, !digitalRead(pinLED)); }
 }
 
 void loop() {
   if (!client || !client.connected()) {
     client = server.available();
+  }
+
+  vigilarWiFi();
+  actualizarLED();
+
+  // Red de seguridad: si pasan 5 min sin que la nube reciba nada (Wi-Fi colgado, DHCP,
+  // TLS trabado), se reinicia la placa. No aplica si hay una laptop leyendo en modo local.
+  bool laptopLocal = client && client.connected();
+  if (laptopLocal) ultimoEnvioOk = millis();
+  if (millis() - ultimoEnvioOk > SIN_ENVIO_REINICIO_MS) {
+    Serial.println("5 min sin enviar a la nube: reiniciando...");
+    delay(200);
+    ESP.restart();
   }
 
   // Una lectura por segundo, contando el tiempo que tarda el envío a la nube
@@ -164,6 +239,12 @@ void loop() {
   bool okI = ina219.success();
   // V x I en vez del registro de potencia: ese tiene pasos de 0.8 mW y bajo techo marca 0
   float potencia_mW = v_panel * corriente_mA;
+
+  // Si el INA219 no respondió al encender (pasa con powerbank), se vuelve a intentar.
+  if (!inaPresente) {
+    inaPresente = ina219.begin();
+    if (inaPresente) { ina219.setCalibration_32V_1A(); Serial.println("INA219 detectado."); }
+  }
 
   // Si la lectura I2C falló, la librería devuelve 0: no se manda un dato falso.
   if (!inaPresente || !okV || !okI) {
@@ -214,12 +295,13 @@ void loop() {
   // ===================================================================
   // ENVÍO A LA NUBE (dashboard en dueber.dev/simon)
   // ===================================================================
-  if (modoNube) {
+  // Se encola siempre: si todavía no hay red, se manda apenas conecte.
+  {
     if (nCola == MAX_COLA) {   // cola llena: se pierde la lectura más vieja
       memmove(cola, cola + 1, sizeof(Lectura) * (MAX_COLA - 1));
       nCola--;
     }
     cola[nCola++] = { segundos, v_panel, corriente_mA, potencia_mW, temp_C, luz_pct };
-    if (nCola >= LOTE) enviarNube();
+    if (modoNube && nCola >= LOTE) enviarNube();
   }
 }
